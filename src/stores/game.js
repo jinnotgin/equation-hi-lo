@@ -216,13 +216,11 @@ export const useGameStore = defineStore('game', {
 
       this.phase = 'ANTE'
       this.logAction(`━━━ <strong>Round ${this.roundNumber}</strong> ━━━`)
-      await this.showAnnouncement(`Round ${this.roundNumber}`)
       this.pot = 0
       this.currentBet = this.minBet
       this.winnerMsg = null
       this.showdownResults = null
       this.pendingDiscard = null
-      this.createDeck()
 
       // Betting cap = smallest stack BEFORE ante (§6) — only non-eliminated players
       this.roundBettingCap = Math.min(...alive.map((p) => p.chips))
@@ -240,6 +238,9 @@ export const useGameStore = defineStore('game', {
         p.finalResult = null
         p.role = p.id === this.dealerIndex ? 'D' : ''
       })
+
+      await this.showAnnouncement(`Round ${this.roundNumber}`)
+      this.createDeck()
 
       // Auto Ante — handle all-in ante (§12)
       this.communityMsg = 'Collecting Ante...'
@@ -335,6 +336,13 @@ export const useGameStore = defineStore('game', {
         player.ops.push('×')
       }
       this.pendingDiscard = null
+
+      // Resume game flow based on phase
+      if (this.phase === 'DEALING') {
+        this.startBettingRound('ROUND_1')
+      } else if (this.phase === 'DEAL_4') {
+        this.startBettingRound('ROUND_2')
+      }
     },
 
     dealInitialCards() {
@@ -346,6 +354,9 @@ export const useGameStore = defineStore('game', {
         this.drawCard(p, false) // Card 3
       })
 
+      // Pause if human has to discard an operator
+      if (this.pendingDiscard) return
+
       this.startBettingRound('ROUND_1')
       this.logAction(`<strong>Turn 1:</strong> Deal & Betting.`)
     },
@@ -356,6 +367,10 @@ export const useGameStore = defineStore('game', {
       this.players.forEach((p) => {
         if (!p.folded) this.drawCard(p, false)
       })
+
+      // Pause if human has to discard an operator
+      if (this.pendingDiscard) return
+
       this.startBettingRound('ROUND_2')
     },
 
@@ -671,6 +686,13 @@ export const useGameStore = defineStore('game', {
       this.communityMsg = ''
       this.actionLog = []
       this.players = []
+    },
+
+    // Consolidated action for "Start Next Round" button
+    completeRoundAndStartNext() {
+      this.showdownResults = null
+      this.winnerMsg = null
+      this.startRound()
     },
 
     humanFold() {

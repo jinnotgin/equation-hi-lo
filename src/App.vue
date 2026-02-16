@@ -708,7 +708,7 @@
         <div v-if="gameStore.phase === 'END' || gameStore.phase === 'GAME_OVER'" class="mb-4">
           <button
             v-if="gameStore.phase === 'END'"
-            @click="gameStore.startRound()"
+            @click="gameStore.completeRoundAndStartNext()"
             class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
           >
             Start Next Round ▶
@@ -767,7 +767,7 @@
 
     <!-- Discard Operator Modal -->
     <div
-      v-if="gameStore.pendingDiscard && isMyTurn"
+      v-if="gameStore.pendingDiscard"
       class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center"
     >
       <div
