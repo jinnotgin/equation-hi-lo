@@ -265,8 +265,7 @@ export const useGameStore = defineStore('game', {
       // Rule: First card must be a number. If special, return and redraw.
       if (player.hand.length === 0 && card.type !== 'number') {
         this.deck.unshift(card)
-        const idx = this.deck.findIndex((c) => c.type === 'number')
-        card = this.deck.splice(idx, 1)[0]
+        return this.drawNumber(player, isFaceDown)
       }
 
       card.faceDown = isFaceDown
@@ -315,14 +314,34 @@ export const useGameStore = defineStore('game', {
           player.ops.push('×')
         }
         // Draw extra number
-        this.drawCard(player, false)
+        this.drawNumber(player, false)
         return
       } else if (card.type === 'sqrt') {
         player.hand.push(card)
-        this.drawCard(player, false)
+        this.drawNumber(player, false)
         return
       }
 
+      player.hand.push(card)
+    },
+
+    drawNumber(player, isFaceDown = false) {
+      if (this.deck.length === 0) return
+      let card = this.deck.pop()
+
+      if (card.type !== 'number') {
+        // If not a number, put it back and find a number
+        this.deck.unshift(card)
+        const idx = this.deck.findIndex((c) => c.type === 'number')
+        if (idx > -1) {
+          card = this.deck.splice(idx, 1)[0]
+        } else {
+          // Should not happen if deck is properly constructed with enough numbers
+          console.warn('No number card found in deck for drawNumber!')
+          return
+        }
+      }
+      card.faceDown = isFaceDown
       player.hand.push(card)
     },
 
