@@ -223,6 +223,14 @@
               >
                 Thinking...
               </div>
+              <!-- Action Toast (right of avatar) -->
+              <div
+                v-if="p.lastAction"
+                class="action-toast absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-xl border whitespace-nowrap z-30"
+                :class="actionToastStyle(p.lastAction)"
+              >
+                {{ p.lastAction }}
+              </div>
             </div>
             <div class="flex items-center gap-1 mt-1">
               <span class="font-bold text-sm">{{ p.name }}</span>
@@ -307,10 +315,17 @@
             <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Bet</span>
             <span>${{ me.currentBet }}</span>
           </div>
-
           <div class="flex gap-6 items-end relative">
             <!-- Stats -->
-            <div class="text-right mb-4">
+            <div class="text-right mb-4 relative">
+              <!-- Action Toast (above name) -->
+              <div
+                v-if="me.lastAction"
+                class="action-toast absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider shadow-xl border whitespace-nowrap z-30"
+                :class="actionToastStyle(me.lastAction)"
+              >
+                {{ me.lastAction }}
+              </div>
               <div
                 class="text-2xl font-bold"
                 :class="isMyTurn ? 'text-gold scale-110' : 'text-white'"
@@ -975,28 +990,83 @@ const opStyle = (op) => {
   }
 }
 
+const actionToastStyle = (action) => {
+  if (!action) return ''
+  if (action === 'Fold') return 'bg-red-900/90 border-red-500 text-red-200'
+  if (action === 'Check') return 'bg-slate-700/90 border-slate-500 text-slate-200'
+  if (action.startsWith('Call')) return 'bg-sky-900/90 border-sky-500 text-sky-200'
+  if (action.startsWith('Raise')) return 'bg-amber-900/90 border-amber-500 text-amber-200'
+  return 'bg-slate-700/90 border-slate-500 text-slate-200'
+}
+
 const action = (type) => {
   if (type === 'fold') {
     gameStore.humanFold()
   } else if (type === 'call') {
     if (toCall.value === 0) {
+      me.value.lastAction = 'Check'
       gameStore.communityMsg = 'You Checked.'
       gameStore.nextTurn()
     } else {
+      me.value.lastAction = `Call $${toCall.value}`
       gameStore.placeBet(me.value, toCall.value)
       gameStore.nextTurn()
     }
   } else if (type === 'raise') {
+    me.value.lastAction = `Raise $${raiseAmount.value}`
     gameStore.placeBet(me.value, toCall.value + raiseAmount.value)
     gameStore.lastAggressorIndex = 0
     gameStore.nextTurn()
   }
 }
+
+// Auto-clear action toasts after 2 seconds
+let actionToastTimers = {}
+watch(
+  () => gameStore.players.map((p) => p.lastAction),
+  (newActions) => {
+    newActions.forEach((action, i) => {
+      if (action) {
+        // Clear any existing timer for this player
+        if (actionToastTimers[i]) clearTimeout(actionToastTimers[i])
+        actionToastTimers[i] = setTimeout(() => {
+          if (gameStore.players[i]) {
+            gameStore.players[i].lastAction = null
+          }
+        }, 2000)
+      }
+    })
+  },
+  { deep: true },
+)
 </script>
 
 <style>
 body {
   margin: 0;
   overflow: hidden;
+}
+
+@keyframes toast-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1.05);
+  }
+  40% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.action-toast {
+  animation: toast-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  pointer-events: none;
 }
 </style>

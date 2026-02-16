@@ -132,6 +132,7 @@ export const useGameStore = defineStore('game', {
           currentBet: 0,
           role: null,
           declaration: null,
+          lastAction: null,
         },
       ]
       for (let i = 0; i < this.numAiPlayers; i++) {
@@ -147,6 +148,7 @@ export const useGameStore = defineStore('game', {
           currentBet: 0,
           role: null,
           declaration: null,
+          lastAction: null,
         })
       }
       this.dealerIndex = this.dealerIndex % totalPlayers
@@ -205,6 +207,7 @@ export const useGameStore = defineStore('game', {
         p.currentBet = 0
         p.totalWagered = 0
         p.declaration = null
+        p.lastAction = null
         p.equationStr = null
         p.finalResult = null
         p.role = p.id === this.dealerIndex ? 'D' : ''
@@ -335,6 +338,12 @@ export const useGameStore = defineStore('game', {
         p.currentBet = 0
         p.hasRaisedThisRound = false // reset per-round raise limit
       })
+      // Delay clearing action toasts so they remain visible during round transitions
+      setTimeout(() => {
+        this.players.forEach((p) => {
+          p.lastAction = null
+        })
+      }, 1500)
 
       // Check if betting cap already reached — auto-skip (§6)
       const active = this.players.filter((p) => !p.folded)
@@ -499,16 +508,20 @@ export const useGameStore = defineStore('game', {
           this.placeBet(ai, toCall + raiseAmt)
           ai.hasRaisedThisRound = true
           this.lastAggressorIndex = ai.id
+          ai.lastAction = `Raise $${raiseAmt}`
         } else {
           // Fallback to call if raise fails
           if (ai.chips >= toCall) this.placeBet(ai, toCall)
           else this.placeBet(ai, ai.chips)
+          ai.lastAction = toCall === 0 ? 'Check' : `Call $${toCall}`
         }
       } else if (action === 'call' || action === 'check') {
         if (ai.chips >= toCall) this.placeBet(ai, toCall)
         else this.placeBet(ai, ai.chips) // All in
+        ai.lastAction = toCall === 0 ? 'Check' : `Call $${toCall}`
       } else {
         ai.folded = true
+        ai.lastAction = 'Fold'
         this.communityMsg = `${ai.name} Folded.`
         this.logAction(`${ai.name} folded.`)
       }
@@ -632,6 +645,7 @@ export const useGameStore = defineStore('game', {
       const human = this.players.find((p) => p.isHuman)
       if (human) {
         human.folded = true
+        human.lastAction = 'Fold'
         this.communityMsg = 'You Folded.'
         this.logAction('You folded.')
         this.nextTurn()
