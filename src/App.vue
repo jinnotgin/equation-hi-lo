@@ -418,24 +418,6 @@
       class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 overflow-y-auto"
     >
       <div class="flex flex-col items-center gap-6 w-full max-w-6xl">
-        <!-- Next Round / Game Over Controls (Always visible in overlay if ready) -->
-        <div v-if="gameStore.phase === 'END' || gameStore.phase === 'GAME_OVER'" class="mb-4">
-          <button
-            v-if="gameStore.phase === 'END'"
-            @click="gameStore.startRound()"
-            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
-          >
-            Start Next Round ▶
-          </button>
-          <button
-            v-if="gameStore.phase === 'GAME_OVER'"
-            @click="gameStore.phase = 'LOBBY'"
-            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
-          >
-            Back to Lobby ⟳
-          </button>
-        </div>
-
         <!-- Showdown Results Panel -->
         <div
           v-if="gameStore.showdownResults"
@@ -656,7 +638,7 @@
                   </span>
                   <span
                     v-if="r.diff != null"
-                    class="text-xs font-mono"
+                    class="text-sm font-mono"
                     :class="
                       r.diff === 0
                         ? 'text-green-400'
@@ -677,22 +659,42 @@
             v-if="gameStore.lowTiebreakExplanation || gameStore.highTiebreakExplanation"
             class="mt-3 p-2.5 bg-amber-900/30 border border-amber-700/50 rounded-lg"
           >
-            <div class="text-amber-300 text-xs font-semibold mb-1">⚖️ Tie Detected</div>
+            <div class="text-amber-300 text-base font-semibold mb-1">⚖️ Tie Detected</div>
             <div
               v-if="gameStore.lowTiebreakExplanation"
-              class="text-amber-200/80 text-[11px] font-mono"
+              class="text-amber-200/80 text-sm font-mono"
             >
               LOW: {{ gameStore.lowTiebreakExplanation }}
             </div>
             <div
               v-if="gameStore.highTiebreakExplanation"
-              class="text-amber-200/80 text-[11px] font-mono"
+              class="text-amber-200/80 text-sm font-mono"
             >
               HIGH: {{ gameStore.highTiebreakExplanation }}
             </div>
           </div>
           <!-- Winner message -->
-          <div class="mt-3 text-center text-sm text-slate-300">{{ gameStore.winnerMsg }}</div>
+          <div class="mt-3 text-center text-large font-semibold text-slate-300">
+            {{ gameStore.winnerMsg }}
+          </div>
+        </div>
+
+        <!-- Next Round / Game Over Controls (Always visible in overlay if ready) -->
+        <div v-if="gameStore.phase === 'END' || gameStore.phase === 'GAME_OVER'" class="mb-4">
+          <button
+            v-if="gameStore.phase === 'END'"
+            @click="gameStore.startRound()"
+            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
+          >
+            Start Next Round ▶
+          </button>
+          <button
+            v-if="gameStore.phase === 'GAME_OVER'"
+            @click="gameStore.phase = 'LOBBY'"
+            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
+          >
+            Back to Lobby ⟳
+          </button>
         </div>
 
         <!-- Fallback for fold wins (Simple Message) -->
@@ -1033,7 +1035,14 @@ watch(
           if (gameStore.players[i]) {
             gameStore.players[i].lastAction = null
           }
+          delete actionToastTimers[i]
         }, 1500)
+      } else {
+        // Action was cleared externally — cancel any pending timer
+        if (actionToastTimers[i]) {
+          clearTimeout(actionToastTimers[i])
+          delete actionToastTimers[i]
+        }
       }
     })
   },

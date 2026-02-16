@@ -345,12 +345,6 @@ export const useGameStore = defineStore('game', {
         p.currentBet = 0
         p.hasRaisedThisRound = false // reset per-round raise limit
       })
-      // Delay clearing action toasts so they remain visible during round transitions
-      setTimeout(() => {
-        this.players.forEach((p) => {
-          p.lastAction = null
-        })
-      }, 1500)
 
       // Check if betting cap already reached — auto-skip (§6)
       const active = this.players.filter((p) => !p.folded)
