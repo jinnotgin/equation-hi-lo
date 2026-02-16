@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-felt-green flex flex-col items-center justify-center p-4 font-sans text-slate-100">
+  <div class="min-h-screen bg-felt-green flex flex-col items-center py-8 px-4 font-sans text-slate-100">
     
     <!-- Top HUD -->
     <div class="w-full max-w-6xl flex justify-between items-center mb-4 bg-felt-dark p-4 rounded-lg shadow-lg">
@@ -25,48 +25,109 @@
     </div>
 
     <!-- Lobby Screen -->
-    <div v-if="gameStore.phase === 'LOBBY'" class="flex flex-col items-center gap-8 mt-12">
-      <h2 class="text-4xl font-bold text-gold tracking-widest">♠ EQUATION HI-LO ♠</h2>
-      <p class="text-slate-300 text-lg max-w-md text-center">Build equations. Bet wisely. Target 1 (Low) or 20 (High) to win the pot.</p>
-      
-      <div class="bg-felt-dark p-8 rounded-xl shadow-2xl flex flex-col items-center gap-6 w-80">
-        <label class="text-lg font-bold text-slate-200">Number of AI Opponents</label>
-        <div class="flex gap-3">
-          <button 
-            v-for="n in [1, 2, 3]" :key="n"
-            @click="selectedAiCount = n"
-            class="w-14 h-14 rounded-lg text-xl font-bold transition-all duration-200 border-2"
-            :class="selectedAiCount === n
-              ? 'bg-gold text-black border-gold scale-110 shadow-lg'
-              : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-gold hover:text-gold'"
-          >
-            {{ n }}
-          </button>
+    <div v-if="gameStore.phase === 'LOBBY'" class="flex flex-col items-center gap-6 mt-6 px-4">
+      <!-- Top row: two-column layout -->
+      <div class="flex gap-8 items-stretch max-w-5xl w-full">
+        <!-- Left: App Info / Branding -->
+        <div class="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl p-8 flex flex-col justify-center">
+          <h2 class="text-5xl font-bold text-gold tracking-widest mb-4">EQUATION<br>HI-LO ♠</h2>
+          <p class="text-slate-300 text-base leading-relaxed mb-4">A poker-style game where <strong class="text-white">math is your weapon</strong>. Combine your cards into an equation to hit the target number.</p>
+          <div class="flex gap-6 text-sm text-slate-400">
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-2xl">🎯</span>
+              <span class="text-blue-400 font-bold">LOW</span>
+              <span>Target 1</span>
+            </div>
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-2xl">🎯</span>
+              <span class="text-red-400 font-bold">HIGH</span>
+              <span>Target 20</span>
+            </div>
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-2xl">⚡</span>
+              <span class="text-amber-400 font-bold">SWING</span>
+              <span>Win Both!</span>
+            </div>
+          </div>
         </div>
-        <p class="text-sm text-slate-400">{{ selectedAiCount + 1 }} players total</p>
 
-        <label class="text-lg font-bold text-slate-200 mt-2">Number of Rounds</label>
-        <div class="flex gap-3">
+        <!-- Right: Game Controls -->
+        <div class="bg-felt-dark p-8 rounded-xl shadow-2xl flex flex-col items-center gap-5 w-80 shrink-0">
+          <h3 class="text-lg font-bold text-gold tracking-wider">New Game</h3>
+
+          <label class="text-sm font-bold text-slate-300 uppercase tracking-wide">AI Opponents</label>
+          <div class="flex gap-3">
+            <button 
+              v-for="n in [1, 2, 3]" :key="n"
+              @click="selectedAiCount = n"
+              class="w-14 h-14 rounded-lg text-xl font-bold transition-all duration-200 border-2"
+              :class="selectedAiCount === n
+                ? 'bg-gold text-black border-gold scale-110 shadow-lg'
+                : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-gold hover:text-gold'"
+            >
+              {{ n }}
+            </button>
+          </div>
+          <p class="text-xs text-slate-500">{{ selectedAiCount + 1 }} players total</p>
+
+          <label class="text-sm font-bold text-slate-300 uppercase tracking-wide">Rounds</label>
+          <div class="flex gap-3">
+            <button 
+              v-for="r in [{val: 5, label: '5'}, {val: 10, label: '10'}, {val: 0, label: '∞'}]" :key="r.val"
+              @click="selectedRounds = r.val"
+              class="w-14 h-14 rounded-lg text-xl font-bold transition-all duration-200 border-2"
+              :class="selectedRounds === r.val
+                ? 'bg-gold text-black border-gold scale-110 shadow-lg'
+                : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-gold hover:text-gold'"
+            >
+              {{ r.label }}
+            </button>
+          </div>
+          <p class="text-xs text-slate-500">{{ selectedRounds === 0 ? 'Elimination mode' : `${selectedRounds} rounds` }}</p>
+          
           <button 
-            v-for="r in [{val: 5, label: '5'}, {val: 10, label: '10'}, {val: 0, label: '∞'}]" :key="r.val"
-            @click="selectedRounds = r.val"
-            class="w-14 h-14 rounded-lg text-xl font-bold transition-all duration-200 border-2"
-            :class="selectedRounds === r.val
-              ? 'bg-gold text-black border-gold scale-110 shadow-lg'
-              : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-gold hover:text-gold'"
+            @click="gameStore.initGame(selectedAiCount, selectedRounds)" 
+            class="bg-gold text-black font-bold px-10 py-3 rounded-lg hover:bg-yellow-400 text-lg tracking-wider shadow-lg transition-transform hover:scale-105 mt-2 w-full"
           >
-            {{ r.label }}
+            ▶ Start Game
           </button>
         </div>
-        <p class="text-sm text-slate-400">{{ selectedRounds === 0 ? 'Elimination mode' : `${selectedRounds} rounds` }}</p>
-        
-        <button 
-          @click="gameStore.initGame(selectedAiCount, selectedRounds)" 
-          class="bg-gold text-black font-bold px-10 py-3 rounded-lg hover:bg-yellow-400 text-lg tracking-wider shadow-lg transition-transform hover:scale-105 mt-2"
-        >
-          Start Game
-        </button>
       </div>
+
+      <!-- Bottom: How to Play (Progressive Disclosure) -->
+      <div class="max-w-5xl w-full">
+        <button @click="showRules = !showRules" class="w-full text-center py-3 rounded-lg border border-slate-700 hover:border-gold bg-slate-900/40 hover:bg-slate-900/60 transition-all text-gold hover:text-yellow-300 text-sm font-bold uppercase tracking-wider">
+          {{ showRules ? '▲ Hide How to Play' : '▼ How to Play' }}
+        </button>
+        <div v-if="showRules" class="bg-slate-900/80 border border-slate-700 border-t-0 rounded-b-xl p-6 text-sm text-slate-300 grid grid-cols-2 gap-x-8 gap-y-4">
+          <div>
+            <h4 class="text-gold font-bold text-sm mb-1">🃏 Cards</h4>
+            <p><strong>Numbers:</strong> 0–9. <br><strong>Suits:</strong> Gold, Silver, Bronze, Black (used for tiebreakers). <br><strong>Special:</strong> <span class="text-purple-400">√</span> (Square Root) and <span class="text-blue-400">×</span> (Multiply).</p>
+          </div>
+          <div>
+            <h4 class="text-gold font-bold text-sm mb-1">� Game Flow</h4>
+            <p>1. <strong>Deal:</strong> You get numbers and math operators (+, −, ÷). <br>2. <strong>Bet:</strong> Raise, call, or fold like poker. <br>3. <strong>Showdown:</strong> Build an equation!</p>
+          </div>
+          <div>
+            <h4 class="text-gold font-bold text-sm mb-1">🏆 Winning the Pot</h4>
+            <p>Combine your cards to make an equation. <br>Target <span class="text-blue-400 font-bold">1</span> (Low) or <span class="text-red-400 font-bold">20</span> (High). <br>Closest to the target wins half the pot.</p>
+          </div>
+          <div>
+            <h4 class="text-gold font-bold text-sm mb-1">⚡ Swing Bet</h4>
+            <p>Feeling lucky? Declare <strong>SWING</strong> to build TWO equations (one for Low, one for High). <br><strong>Rule:</strong> You must win BOTH sides to take the whole pot!</p>
+          </div>
+          <div class="col-span-2 border-t border-slate-700 pt-3">
+             <h4 class="text-gold font-bold text-sm mb-2">⭐ Important Rules</h4>
+             <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-slate-400">
+               <p>&bull; <strong class="text-slate-300">Elimination:</strong> Run out of chips? You're out. Last player standing wins.</p>
+               <p>&bull; <strong class="text-slate-300">√ Card:</strong> Applies square root to the <em>next</em> number in your equation.</p>
+               <p>&bull; <strong class="text-slate-300">× Card:</strong> Can be used to multiply, but you must discard a + or − first.</p>
+               <p>&bull; <strong class="text-slate-300">Tiebreaker:</strong> Equal distance to target? Lowest card wins Low; Highest card wins High.</p>
+             </div>
+          </div>
+        </div>
+      </div>
+      <div class="h-16"></div> <!-- Bottom padding spacer -->
     </div>
 
     <!-- Main Table -->
@@ -280,6 +341,7 @@ import EquationBoard from './components/EquationBoard.vue';
 const gameStore = useGameStore();
 const selectedAiCount = ref(3);
 const selectedRounds = ref(10);
+const showRules = ref(false);
 
 const me = computed(() => gameStore.players[0] || { hand: [], ops: [], chips: 0 });
 const opponents = computed(() => gameStore.players.slice(1));
