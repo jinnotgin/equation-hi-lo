@@ -398,7 +398,10 @@ export const useGameStore = defineStore('game', {
       }
 
       if (currentPlayer.isHuman) {
-        this.communityMsg = 'Your Turn. Call, Raise or Fold?'
+        const currentTableBet = Math.max(...this.players.map((p) => p.currentBet))
+        const toCall = currentTableBet - currentPlayer.currentBet
+        const callText = toCall === 0 ? 'Check' : `Call $${toCall}`
+        this.communityMsg = `Your Turn. ${callText}, Raise or Fold?`
       } else {
         this.communityMsg = `${currentPlayer.name} is thinking...`
         setTimeout(() => this.aiMove(currentPlayer), 1500)

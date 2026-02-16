@@ -385,7 +385,7 @@
               @click="action('call')"
               class="bg-slate-600 hover:bg-slate-500 px-6 py-3 rounded font-bold uppercase tracking-wider border border-slate-400"
             >
-              {{ toCall === 0 ? 'Check' : `Call ${toCall}` }}
+              {{ toCall === 0 ? 'Check' : `Call $${toCall}` }}
             </button>
             <div v-if="canRaise" class="flex items-center gap-2">
               <button
@@ -398,7 +398,7 @@
                 @click="action('raise')"
                 class="bg-gold text-black hover:bg-yellow-400 px-6 py-3 rounded font-bold uppercase tracking-wider border border-yellow-600"
               >
-                Raise {{ raiseAmount }}
+                Raise ${{ raiseAmount }}
               </button>
               <button
                 @click="adjustRaise(10)"
@@ -1026,10 +1026,11 @@ const action = (type) => {
 let actionToastTimers = {}
 watch(
   () => gameStore.players.map((p) => p.lastAction),
-  (newActions) => {
+  (newActions, oldActions) => {
     newActions.forEach((action, i) => {
-      if (action) {
-        // Clear any existing timer for this player
+      const oldAction = oldActions ? oldActions[i] : null
+      if (action && action !== oldAction) {
+        // Only start/restart timer when this player's action actually changed
         if (actionToastTimers[i]) clearTimeout(actionToastTimers[i])
         actionToastTimers[i] = setTimeout(() => {
           if (gameStore.players[i]) {
@@ -1037,16 +1038,13 @@ watch(
           }
           delete actionToastTimers[i]
         }, 1500)
-      } else {
+      } else if (!action && actionToastTimers[i]) {
         // Action was cleared externally — cancel any pending timer
-        if (actionToastTimers[i]) {
-          clearTimeout(actionToastTimers[i])
-          delete actionToastTimers[i]
-        }
+        clearTimeout(actionToastTimers[i])
+        delete actionToastTimers[i]
       }
     })
   },
-  { deep: true },
 )
 </script>
 
