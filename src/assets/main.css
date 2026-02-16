@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-felt-green: #0f3d28;
+  --color-felt-dark: #0a2619;
+  --color-gold: #ffd700;
+  --color-silver: #c0c0c0;
+  --color-bronze: #cd7f32;
+  --font-mono: "Courier New", Courier, monospace;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
