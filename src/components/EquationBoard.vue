@@ -12,14 +12,20 @@
         @drop="onDrop($event, index)"
       >
         <span v-if="!slot.item" class="text-slate-600 text-xs">Slot {{index+1}}</span>
+        <!-- Operator in slot: render with color -->
+        <div v-else-if="slot.item.type === 'op'" 
+          class="w-16 h-24 rounded flex items-center justify-center cursor-grab text-2xl font-bold border-2"
+          :class="opColor(slot.item.value)"
+          draggable="true" @dragstart="onDragStart($event, index, 'board')"
+        >{{ slot.item.value }}</div>
+        <!-- Card in slot -->
         <Card v-else :card="slot.item" :isFaceDown="false" draggable="true" @dragstart="onDragStart($event, index, 'board')" />
       </div>
     </div>
 
-    <!-- Result Preview (No assistance allowed, but we show current syntax validity for debugging/sanity) -->
+    <!-- Result Preview -->
     <div class="text-center mt-2 text-gold font-mono h-6">
-       <!-- Intentionally left blank or simple 'Valid/Invalid' per rule request -->
-       {{ isValid ? 'Equation Formed' : 'Arrange: Num Op Num Op Num Op Num' }}
+       {{ divisionByZeroError ? '❌ Division by zero is not allowed!' : isValid ? '✅ All cards & operators used — choose your target!' : `Place all cards (${availableCards.length} left) and operators (${availableOps.length} left)` }}
     </div>
 
     <!-- Hand (Source) -->
@@ -32,8 +38,10 @@
            @dragstart="onDragStart($event, i, 'hand')" 
          />
       </div>
-       <!-- Operators -->
-       <div v-for="(op, i) in availableOps" :key="'op'+i" class="w-16 h-24 bg-blue-100 rounded flex items-center justify-center cursor-grab text-2xl font-bold text-blue-900 border-2 border-blue-300"
+       <!-- Operators (with per-op colors) -->
+       <div v-for="(op, i) in availableOps" :key="'op'+i" 
+        class="w-16 h-24 rounded flex items-center justify-center cursor-grab text-2xl font-bold border-2"
+        :class="opColor(op)"
         draggable="true" 
         @dragstart="onOpDragStart($event, op, i)"
        >
@@ -41,10 +49,26 @@
        </div>
     </div>
 
+    <!-- Swing Phase Label -->
+    <div v-if="swingPhase" class="text-center mt-2 text-lg font-bold" :class="swingPhase === 'low' ? 'text-blue-400' : 'text-red-400'">
+      🎯 SWING — Build your {{ swingPhase === 'low' ? 'LOW (target 1)' : 'HIGH (target 20)' }} equation
+    </div>
+
     <!-- Controls -->
     <div class="flex justify-center gap-4 mt-6">
-      <button @click="declare('LOW')" :disabled="!isValid" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded disabled:opacity-50">Target 1 (Low)</button>
-      <button @click="declare('HIGH')" :disabled="!isValid" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded disabled:opacity-50">Target 20 (High)</button>
+      <template v-if="!swingPhase">
+        <button @click="declare('LOW')" :disabled="!isValid || divisionByZeroError" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded disabled:opacity-50">Target 1 (Low)</button>
+        <button @click="declare('HIGH')" :disabled="!isValid || divisionByZeroError" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded disabled:opacity-50">Target 20 (High)</button>
+        <button @click="startSwing()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded border border-purple-400">🎯 Swing</button>
+      </template>
+      <template v-else-if="swingPhase === 'low'">
+        <button @click="confirmSwingLow()" :disabled="!isValid || divisionByZeroError" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded disabled:opacity-50">Confirm Low Equation →</button>
+        <button @click="cancelSwing()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded">Cancel</button>
+      </template>
+      <template v-else-if="swingPhase === 'high'">
+        <button @click="confirmSwingHigh()" :disabled="!isValid || divisionByZeroError" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded disabled:opacity-50">Submit Swing!</button>
+        <button @click="cancelSwing()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded">Cancel</button>
+      </template>
     </div>
   </div>
 </template>
@@ -53,6 +77,17 @@
 import { ref, computed, onMounted } from 'vue';
 import Card from './Card.vue';
 import { useGameStore } from '../stores/game';
+
+// Per-operator color classes (matches App.vue opStyle)
+const opColor = (op) => {
+  switch (op) {
+    case '+': return 'bg-emerald-700 border-emerald-500 text-white';
+    case '-': return 'bg-rose-700 border-rose-500 text-white';
+    case '÷': return 'bg-sky-700 border-sky-500 text-white';
+    case '×': return 'bg-amber-600 border-amber-400 text-black';
+    default: return 'bg-slate-600 border-slate-400 text-white';
+  }
+};
 
 const game = useGameStore();
 const player = computed(() => game.players[0]);
@@ -68,7 +103,8 @@ const availableOps = ref([]);
 
 onMounted(() => {
   if (player.value) {
-    availableCards.value = [...player.value.hand];
+    // Filter out special cards (multiply/sqrt) — they modify ops/numbers, not placed in equation
+    availableCards.value = player.value.hand.filter(c => c.type === 'number' || c.type === 'sqrt');
     availableOps.value = [...player.value.ops];
   }
 });
@@ -131,15 +167,15 @@ const onDrop = (evt, slotIndex) => {
   }
 };
 
-// Basic validation: Must use all numbers.
+// Validation: ALL cards and ALL operators must be used.
 const isValid = computed(() => {
-    return availableCards.value.filter(c => c.type === 'number').length === 0;
+    return availableCards.value.length === 0 && availableOps.value.length === 0;
 });
 
+const divisionByZeroError = ref(false);
+
 const calculateResult = () => {
-    // This is a naive parser. 
-    // In real game, we need strict logic: Num Op Num Op Num.
-    // We will just eval the string constructed by the visual order.
+    divisionByZeroError.value = false;
     try {
         let str = "";
         let pendingSqrt = false;
@@ -158,14 +194,79 @@ const calculateResult = () => {
         });
         
         // eslint-disable-next-line no-new-func
-        return new Function('return ' + str)();
+        const result = new Function('return ' + str)();
+        if (!isFinite(result) || isNaN(result)) {
+            divisionByZeroError.value = true;
+            return null;
+        }
+        return result;
     } catch(e) {
-        return -999;
+        return null;
     }
 };
 
 const declare = (target) => {
     const res = calculateResult();
+    if (res === null) return; // division by zero or parse error
+    // Build a human-readable equation string from the slots
+    let eqStr = '';
+    slots.value.forEach(s => {
+        if (!s.item) return;
+        if (s.item.type === 'number') eqStr += s.item.value;
+        else if (s.item.type === 'sqrt') eqStr += '√';
+        else if (s.item.type === 'op') eqStr += ` ${s.item.value} `;
+    });
+    player.value.equationStr = eqStr.trim();
     game.submitEquation(0, target, res);
+};
+
+// §11: Swing bet flow
+const swingPhase = ref(null); // null | 'low' | 'high'
+const savedLowResult = ref(null);
+const savedLowEqStr = ref('');
+
+const startSwing = () => {
+    swingPhase.value = 'low';
+};
+
+const cancelSwing = () => {
+    swingPhase.value = null;
+    savedLowResult.value = null;
+    savedLowEqStr.value = '';
+    resetSlots();
+};
+
+const confirmSwingLow = () => {
+    const res = calculateResult();
+    if (res === null) return;
+    let eqStr = '';
+    slots.value.forEach(s => {
+        if (!s.item) return;
+        if (s.item.type === 'number') eqStr += s.item.value;
+        else if (s.item.type === 'sqrt') eqStr += '√';
+        else if (s.item.type === 'op') eqStr += ` ${s.item.value} `;
+    });
+    savedLowResult.value = res;
+    savedLowEqStr.value = eqStr.trim();
+    swingPhase.value = 'high';
+    resetSlots();
+};
+
+const confirmSwingHigh = () => {
+    const res = calculateResult();
+    if (res === null) return;
+    let eqStr = '';
+    slots.value.forEach(s => {
+        if (!s.item) return;
+        if (s.item.type === 'number') eqStr += s.item.value;
+        else if (s.item.type === 'sqrt') eqStr += '√';
+        else if (s.item.type === 'op') eqStr += ` ${s.item.value} `;
+    });
+    player.value.equationStr = `L: ${savedLowEqStr.value} | H: ${eqStr.trim()}`;
+    game.submitEquation(0, 'SWING', savedLowResult.value, res);
+};
+
+const resetSlots = () => {
+    slots.value.forEach(s => s.item = null);
 };
 </script>

@@ -5,8 +5,9 @@ export const SUITS = ['gold', 'silver', 'bronze', 'black'];
 // Check if equation is valid (no division by zero)
 const safeEval = (str) => {
   try {
-    // Check for division by zero manually before eval
-    if (/\/ 0(?!\.)/.test(str)) return null; 
+    // Check for division by zero — catches "/ 0" at end or "/ 0 " before next op
+    if (/\/ 0(?:\s|$)/.test(str)) return null;
+    // Also catch division by any value that evaluates to 0 (sqrt of 0, etc.)
     // eslint-disable-next-line no-new-func
     const res = new Function('return ' + str)();
     if (!isFinite(res) || isNaN(res)) return null;
@@ -31,10 +32,36 @@ const permute = (arr) => {
   return output;
 };
 
-export const solveHand = (numberCards, operators) => {
-  // numberCards array of objects { value, suit, hasSqrt }
-  // operators array of strings ['+', '-', '*', '/']
-  
+/**
+ * Generate all ways to assign `count` √ modifiers to `n` number positions.
+ * Returns arrays of booleans, e.g. for 4 numbers and 1 sqrt:
+ * [[true,false,false,false],[false,true,false,false],...]
+ */
+const sqrtCombinations = (n, count) => {
+  if (count === 0) return [new Array(n).fill(false)];
+  const results = [];
+  const combo = (start, remaining, current) => {
+    if (remaining === 0) {
+      results.push([...current]);
+      return;
+    }
+    for (let i = start; i < n; i++) {
+      current[i] = true;
+      combo(i + 1, remaining - 1, current);
+      current[i] = false;
+    }
+  };
+  combo(0, count, new Array(n).fill(false));
+  return results;
+};
+
+/**
+ * Solve a hand to find the best LOW (closest to 1) and HIGH (closest to 20) equations.
+ * @param {Array} numberCards - Array of { value, suit } objects (only number cards)
+ * @param {Array} operators - Array of operator strings ['+', '-', '÷', '×']
+ * @param {number} sqrtCount - Number of √ cards available (0-3)
+ */
+export const solveHand = (numberCards, operators, sqrtCount = 0) => {
   let bestLow = { result: Infinity, diff: Infinity, equation: '' };
   let bestHigh = { result: -Infinity, diff: Infinity, equation: '' };
 
@@ -44,45 +71,53 @@ export const solveHand = (numberCards, operators) => {
   // 2. Permute Operators
   const opPerms = permute(operators);
 
+  // 3. All possible √ assignments
+  const sqrtAssignments = sqrtCombinations(numberCards.length, sqrtCount);
+
   // Iterate all combinations
   for (const nums of numPerms) {
     for (const ops of opPerms) {
-      // Construct equation string: N1 Op1 N2 Op2 N3 Op3 N4
-      // Handle Sqrt: If card has hasSqrt, value is Math.sqrt(val)
-      
-      // Build visual string and eval string
-      let evalStr = "";
-      
-      // We assume standard 4 numbers 3 ops structure for simplicity of the AI solver
-      // (The game logic ensures players always end up with balanced sets via discard rules)
-      
-      for (let i = 0; i < nums.length; i++) {
-        let val = nums[i].value;
-        if (nums[i].sqrt) val = Math.sqrt(val);
+      for (const sqrtFlags of sqrtAssignments) {
+        // Build eval string: N1 Op1 N2 Op2 N3 Op3 N4
+        let evalStr = "";
+        let displayStr = "";
         
-        evalStr += val;
-        
-        if (i < ops.length) {
-          let op = ops[i];
-          if (op === '×') op = '*';
-          if (op === '÷') op = '/';
-          evalStr += ` ${op} `;
-        }
-      }
-
-      const res = safeEval(evalStr);
-
-      if (res !== null) {
-        // Check Low (Target 1)
-        const diff1 = Math.abs(res - 1);
-        if (diff1 < bestLow.diff) {
-          bestLow = { result: res, diff: diff1, equation: evalStr };
+        for (let i = 0; i < nums.length; i++) {
+          let val = nums[i].value;
+          let displayVal = String(val);
+          
+          if (sqrtFlags[i]) {
+            val = Math.sqrt(val);
+            displayVal = `√${nums[i].value}`;
+          }
+          
+          evalStr += val;
+          displayStr += displayVal;
+          
+          if (i < ops.length) {
+            let op = ops[i];
+            let displayOp = op;
+            if (op === '×') op = '*';
+            if (op === '÷') op = '/';
+            evalStr += ` ${op} `;
+            displayStr += ` ${displayOp} `;
+          }
         }
 
-        // Check High (Target 20)
-        const diff20 = Math.abs(res - 20);
-        if (diff20 < bestHigh.diff) {
-          bestHigh = { result: res, diff: diff20, equation: evalStr };
+        const res = safeEval(evalStr);
+
+        if (res !== null) {
+          // Check Low (Target 1)
+          const diff1 = Math.abs(res - 1);
+          if (diff1 < bestLow.diff) {
+            bestLow = { result: res, diff: diff1, equation: displayStr };
+          }
+
+          // Check High (Target 20)
+          const diff20 = Math.abs(res - 20);
+          if (diff20 < bestHigh.diff) {
+            bestHigh = { result: res, diff: diff20, equation: displayStr };
+          }
         }
       }
     }
