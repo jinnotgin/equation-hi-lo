@@ -21,6 +21,9 @@
           class="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl p-8 flex flex-col justify-center"
         >
           <h2 class="text-5xl font-bold text-gold tracking-widest mb-4">EQUATION<br />HI-LO ♠</h2>
+          <p class="text-slate-300 text-base italic leading-relaxed mb-4">
+            Inspired by "The Devil's Plan" (Netflix), created by Jung Jong-yeon
+          </p>
           <p class="text-slate-300 text-base leading-relaxed mb-4">
             A poker-style game where <strong class="text-white">math is your weapon</strong>.
             Combine your cards into an equation to hit the target number.
@@ -250,7 +253,7 @@
                   :card="c"
                   :isFaceDown="c.faceDown"
                   :compact="true"
-                  class="origin-bottom transition-transform hover:-translate-y-2"
+                  class="origin-bottom transition-transform hover:-translate-y-2 hover:rotate-1"
                 />
               </div>
               <!-- Opponent Operations (Styled like Player) -->
@@ -347,7 +350,7 @@
               <div
                 v-for="(c, i) in sortedHand"
                 :key="c.id"
-                class="transform transition-transform duration-300 hover:-translate-y-4 hover:rotate-2 cursor-pointer z-10"
+                class="transform transition-transform duration-300 hover:-translate-y-4 hover:rotate-2 z-10"
                 :style="{ 'z-index': i }"
               >
                 <Card :card="c" :isFaceDown="false" class="shadow-2xl" />
@@ -746,6 +749,12 @@
       >
         <h3 class="text-gold text-xl font-bold tracking-wider">× Card Drawn!</h3>
 
+        <div class="w-full text-center">
+          <p class="text-slate-300 text-center">
+            You drew a <span class="text-gold font-bold">Multiply (×)</span> card.
+          </p>
+        </div>
+
         <!-- Show Current Hand + Ops for Context -->
         <div class="flex items-center gap-4 justify-center mb-2">
           <!-- Cards -->
@@ -774,7 +783,6 @@
 
         <div class="w-full text-center">
           <p class="text-slate-300 text-center mb-4">
-            You drew a <span class="text-gold font-bold">Multiply (×)</span> card.<br />
             Choose which operator to
             <span class="font-bold underline text-white">discard</span> from your hand:
           </p>
@@ -873,6 +881,12 @@ const sortedHand = computed(() => {
     return a.type.localeCompare(b.type)
   })
 })
+
+const confirmExit = () => {
+  if (confirm('Are you sure you want to exit? Your game progress will be lost.')) {
+    gameStore.resetToLobby()
+  }
+}
 
 const adjustRaise = (delta) => {
   raiseAmount.value = Math.max(10, Math.min(raiseAmount.value + delta, maxRaise.value))

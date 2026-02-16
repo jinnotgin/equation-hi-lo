@@ -401,62 +401,97 @@ export const useGameStore = defineStore('game', {
       const sqrtCount = ai.hand.filter((c) => c.type === 'sqrt').length
 
       const solution = solveHand(numbers, ai.ops, sqrtCount)
-      const bestDiff = Math.min(solution.low.diff, solution.high.diff)
 
-      // Betting Context
+      // 2. Evaluate hand quality
+      // LOW (target 1) is easier to hit precisely, so we use tighter thresholds.
+      // HIGH thresholds = LOW thresholds × HIGH_LENIENCY_FACTOR
+      const HIGH_LENIENCY_FACTOR = 4
+      const LOW_THRESHOLDS = { elite: 0.05, strong: 0.17, decent: 0.5, weak: 1.0 }
+      const HIGH_THRESHOLDS = {
+        elite: LOW_THRESHOLDS.elite * HIGH_LENIENCY_FACTOR,
+        strong: LOW_THRESHOLDS.strong * HIGH_LENIENCY_FACTOR,
+        decent: LOW_THRESHOLDS.decent * HIGH_LENIENCY_FACTOR,
+        weak: LOW_THRESHOLDS.weak * HIGH_LENIENCY_FACTOR,
+      }
+
+      const bestSide = solution.low.diff <= solution.high.diff ? 'LOW' : 'HIGH'
+      const bestRawDiff = Math.min(solution.low.diff, solution.high.diff)
+      const t = bestSide === 'LOW' ? LOW_THRESHOLDS : HIGH_THRESHOLDS
+
+      // Classify hand into tier
+      let tier
+      if (bestRawDiff <= t.elite) tier = 'elite'
+      else if (bestRawDiff <= t.strong) tier = 'strong'
+      else if (bestRawDiff <= t.decent) tier = 'decent'
+      else if (bestRawDiff <= t.weak) tier = 'weak'
+      else tier = 'junk'
+
+      // 3. Betting Context
       const currentTableBet = Math.max(...this.players.map((p) => p.currentBet))
       const toCall = currentTableBet - ai.currentBet
-      const stackRatio = toCall / (ai.chips + 0.1) // Avoid div by zero
+      const costRatio = toCall / (ai.chips + 0.1) // How expensive is this call relative to stack
+      const isRound1 = this.phase === 'ROUND_1'
 
-      // Decider
+      // 4. Decide action based on tier and context
       let action = 'fold'
       const roll = Math.random()
 
-      if (bestDiff <= 1.0) {
-        // GREAT HAND: Aggressive
-        // Raise if we haven't already raised this round and we can
-        // Otherwise Call
-        if (!ai.hasRaisedThisRound && roll > 0.2) {
-          action = 'raise' // 80% chance to raise
+      if (tier === 'elite') {
+        // Very aggressive
+        if (!ai.hasRaisedThisRound && roll > 0.3) {
+          action = 'raise'
         } else {
           action = 'call'
         }
-      } else if (bestDiff <= 3.0) {
-        // GOOD HAND: Defensive/Passive
-        // Mostly call, rare bluff raise
-        if (!ai.hasRaisedThisRound && roll > 0.95) {
-          action = 'raise' // 5% bluff raise
+      } else if (tier === 'strong') {
+        // Mostly call, context-aware
+        if (!ai.hasRaisedThisRound && roll > 0.9) {
+          action = 'raise'
+        } else if (toCall === 0) {
+          action = 'check'
+        } else if (costRatio < 0.15) {
+          action = 'call' // Cheap — always call
+        } else if (costRatio < 0.3) {
+          action = roll > 0.2 ? 'call' : 'fold' // 80% call, 20% fold
         } else {
-          action = 'call'
+          action = roll > 0.5 ? 'call' : 'fold' // 50/50 when expensive
         }
-      } else if (bestDiff <= 6.0) {
-        // MARGINAL HAND: Context Aware
-        // Call if cheap (< 10% of stack), otherwise Fold
-        if (toCall === 0 || stackRatio < 0.1) {
-          action = 'call'
+      } else if (tier === 'decent') {
+        // Call only if cheap, fold into raises
+        if (toCall === 0) {
+          action = 'check'
+        } else if (isRound1 && costRatio < 0.15) {
+          action = 'call' // Round 1: call if cheap (hand may improve)
+        } else if (!isRound1 && costRatio < 0.08) {
+          action = 'call' // Round 2: only call if very cheap
+        } else {
+          action = 'fold'
+        }
+      } else if (tier === 'weak') {
+        // Check if free, otherwise fold
+        if (toCall === 0) {
+          action = 'check'
+        } else if (roll > 0.95 && costRatio < 0.05) {
+          action = 'call' // 5% hero-call if basically free
         } else {
           action = 'fold'
         }
       } else {
-        // JUNK HAND: Fold mostly
+        // JUNK HAND: Check if free, otherwise always fold
         if (toCall === 0) {
-          action = 'check' // Always check if free
-        } else if (roll > 0.95) {
-          // 5% Kamikaze bluff / "I have a feeling" call
-          // If toCall is huge (> 30% stack), just fold
-          if (stackRatio > 0.3) action = 'fold'
-          else action = 'call'
+          action = 'check'
         } else {
           action = 'fold'
         }
       }
 
-      // Execute Action
+      // 5. Execute Action
       if (action === 'raise') {
-        // Determine raise size (20 - 50 chips)
-        const baseRaise = 20
-        const extra = Math.floor(Math.random() * 4) * 10 // 0, 10, 20, 30
-        const raiseAmt = baseRaise + extra
+        // Elite raises bigger
+        const raiseAmt =
+          tier === 'elite'
+            ? 30 + Math.floor(Math.random() * 3) * 10
+            : 20 + Math.floor(Math.random() * 2) * 10
 
         const maxAdditional = this.roundBettingCap - ai.totalWagered
         // Ensure we can afford it and it's under cap
@@ -565,7 +600,11 @@ export const useGameStore = defineStore('game', {
           const nums = ai.hand.filter((c) => c.type === 'number')
           const sqrtCount = ai.hand.filter((c) => c.type === 'sqrt').length
           const sol = solveHand(nums, ai.ops, sqrtCount)
-          if (sol.low.diff < sol.high.diff) {
+          // Normalize: HIGH is 4x more forgiving than LOW
+          const HIGH_LENIENCY_FACTOR = 4
+          const normLowDiff = sol.low.diff
+          const normHighDiff = sol.high.diff / HIGH_LENIENCY_FACTOR
+          if (normLowDiff < normHighDiff) {
             ai.declaration = 'LOW'
             ai.finalResult = sol.low.result
             ai.equationStr = sol.low.equation
@@ -575,6 +614,18 @@ export const useGameStore = defineStore('game', {
             ai.equationStr = sol.high.equation
           }
         })
+    },
+
+    resetToLobby() {
+      this.phase = 'LOBBY'
+      this.winnerMsg = null
+      this.showdownResults = null
+      this.pendingDiscard = null
+      this.pot = 0
+      this.round = 0
+      this.communityMsg = ''
+      this.actionLog = []
+      this.players = []
     },
 
     humanFold() {

@@ -76,7 +76,7 @@
       <div
         v-for="(card, i) in availableCards"
         :key="card.id"
-        class="cursor-pointer hover:-translate-y-1 transition-transform"
+        class="cursor-move hover:-translate-y-1 transition-transform"
         @click="addFromHand(card, 'card', i)"
       >
         <Card
@@ -90,7 +90,7 @@
       <div
         v-for="(op, i) in availableOps"
         :key="'op' + i"
-        class="w-16 h-24 rounded flex items-center justify-center cursor-pointer text-2xl font-bold border-2 hover:-translate-y-1 transition-transform"
+        class="w-16 h-24 rounded flex items-center justify-center cursor-move text-2xl font-bold border-2 hover:-translate-y-1 transition-transform"
         :class="opColor(op)"
         draggable="true"
         @dragstart="onOpDragStart($event, op, i)"
