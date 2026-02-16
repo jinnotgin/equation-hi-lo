@@ -2,16 +2,6 @@
   <div
     class="min-h-screen bg-felt-green flex flex-col items-center py-8 px-4 font-sans text-slate-100"
   >
-    <!-- Top HUD (Lobby Only) -->
-    <div
-      v-if="gameStore.phase === 'LOBBY'"
-      class="w-full max-w-6xl flex justify-between items-center mb-4 bg-felt-dark p-4 rounded-lg shadow-lg z-20 relative"
-    >
-      <div>
-        <h1 class="text-2xl font-bold text-gold tracking-widest">EQUATION HI-LO</h1>
-      </div>
-    </div>
-
     <!-- Lobby Screen -->
     <div v-if="gameStore.phase === 'LOBBY'" class="flex flex-col items-center gap-6 mt-6 px-4">
       <!-- Top row: two-column layout -->
@@ -109,13 +99,14 @@
       <!-- Bottom: How to Play (Progressive Disclosure) -->
       <div class="max-w-5xl w-full">
         <button
-          @click="showRules = !showRules"
+          @click="toggleRules"
           class="w-full text-center py-3 rounded-lg border border-slate-700 hover:border-gold bg-slate-900/40 hover:bg-slate-900/60 transition-all text-gold hover:text-yellow-300 text-sm font-bold uppercase tracking-wider"
         >
           {{ showRules ? '▲ Hide How to Play' : '▼ How to Play' }}
         </button>
         <div
           v-if="showRules"
+          ref="rulesSection"
           class="bg-slate-900/80 border border-slate-700 border-t-0 rounded-b-xl p-6 text-sm text-slate-300 grid grid-cols-2 gap-x-8 gap-y-4"
         >
           <div>
@@ -830,7 +821,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useGameStore } from './stores/game'
 import Card from './components/Card.vue'
 import EquationBoard from './components/EquationBoard.vue'
@@ -841,7 +832,16 @@ const gameStore = useGameStore()
 const selectedAiCount = ref(3)
 const selectedRounds = ref(10)
 const showRules = ref(false)
+const rulesSection = ref(null)
 const isBuilderMinimized = ref(false)
+
+const toggleRules = async () => {
+  showRules.value = !showRules.value
+  if (showRules.value) {
+    await nextTick()
+    rulesSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
 
 const me = computed(() => gameStore.players[0] || { hand: [], ops: [], chips: 0 })
 const opponents = computed(() => gameStore.players.slice(1))
@@ -893,7 +893,6 @@ const adjustRaise = (delta) => {
 }
 
 // Reset raise amount at start of new round
-import { watch } from 'vue'
 watch(
   () => gameStore.phase,
   (newPhase) => {
