@@ -199,7 +199,7 @@
                 class="w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-800 shadow-lg mb-2 relative"
                 :class="
                   gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg
-                    ? 'border-gold scale-110 animate-pulse'
+                    ? 'border-gold scale-110 border-pulse'
                     : 'border-slate-600'
                 "
               >
@@ -233,7 +233,7 @@
               </div>
             </div>
             <div class="flex items-center gap-1 mt-1">
-              <span class="font-bold text-sm">{{ p.name }}</span>
+              <span class="font-bold text-base">{{ p.name }}</span>
               <Tooltip text="Dealer" v-if="gameStore.dealerIndex === p.id">
                 <div
                   class="bg-white text-black font-bold rounded-full w-4 h-4 flex items-center justify-center border border-slate-400 text-[10px] shadow-sm cursor-help"
@@ -242,9 +242,9 @@
                 </div>
               </Tooltip>
             </div>
-            <span class="text-gold font-mono text-xs">${{ p.chips }}</span>
+            <span class="text-gold font-mono text-base">${{ p.chips }}</span>
             <!-- Cards + Ops row -->
-            <div class="flex items-center gap-2 mt-1 relative">
+            <div class="flex items-center gap-2 mt-1.5 relative">
               <div class="flex -space-x-1">
                 <Card
                   v-for="(c, i) in p.hand"
@@ -269,9 +269,9 @@
               <!-- Bet Badge (Repositioned Below Cards) -->
               <div
                 v-if="p.currentBet > 0"
-                class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-3 py-0.5 rounded text-xs text-gold shadow-lg font-bold whitespace-nowrap z-20 flex items-center gap-1"
+                class="absolute -bottom-10 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-3 py-0.5 rounded text-base text-gold shadow-lg font-bold whitespace-nowrap z-20 flex items-baseline gap-1"
               >
-                <span class="text-[8px] text-slate-400 uppercase">Bet</span>
+                <span class="text-[10px] text-slate-400 uppercase">Bet</span>
                 <span>${{ p.currentBet }}</span>
               </div>
             </div>
@@ -310,7 +310,7 @@
           <!-- Player Bet Badge (Moved Top) -->
           <div
             v-if="me.currentBet > 0"
-            class="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-4 py-1 rounded text-gold font-bold text-lg shadow-lg whitespace-nowrap flex items-baseline gap-1"
+            class="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-3 py-0.5 rounded text-gold font-bold text-lg shadow-lg whitespace-nowrap flex items-baseline gap-1"
           >
             <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Bet</span>
             <span>${{ me.currentBet }}</span>
@@ -321,7 +321,7 @@
               <!-- Action Toast (above name) -->
               <div
                 v-if="me.lastAction"
-                class="action-toast absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider shadow-xl border whitespace-nowrap z-30"
+                class="action-toast absolute -top-8 right-0 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider shadow-xl border whitespace-nowrap z-30"
                 :class="actionToastStyle(me.lastAction)"
               >
                 {{ me.lastAction }}
@@ -808,7 +808,7 @@
     <!-- HUD Container (Message + Action Log) -->
     <div
       v-if="gameStore.phase !== 'LOBBY'"
-      class="fixed bottom-4 left-4 z-50 flex flex-col-reverse items-start gap-2 pointer-events-none"
+      class="fixed bottom-4 left-4 z-50 flex flex-col-reverse items-start gap-1.5 pointer-events-none"
     >
       <ActionLog />
 
@@ -819,7 +819,7 @@
         </div>
         <div
           v-if="gameStore.communityMsg"
-          class="bg-black/90 text-gold px-6 py-4 rounded-lg border border-gold/30 shadow-2xl backdrop-blur text-xl font-bold animate-bounce-slight pointer-events-auto max-w-2xl text-left leading-tight"
+          class="bg-black/90 text-gold px-4 py-2 rounded-lg border border-gold/30 shadow-2xl backdrop-blur text-base font-bold animate-bounce-slight pointer-events-auto max-w-2xl text-left leading-tight"
         >
           {{ gameStore.communityMsg }}
         </div>
@@ -1020,7 +1020,7 @@ const action = (type) => {
   }
 }
 
-// Auto-clear action toasts after 2 seconds
+// Auto-clear action toasts after 1.5 seconds
 let actionToastTimers = {}
 watch(
   () => gameStore.players.map((p) => p.lastAction),
@@ -1033,7 +1033,7 @@ watch(
           if (gameStore.players[i]) {
             gameStore.players[i].lastAction = null
           }
-        }, 2000)
+        }, 1500)
       }
     })
   },
@@ -1068,5 +1068,21 @@ body {
 .action-toast {
   animation: toast-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   pointer-events: none;
+}
+
+@keyframes border-glow {
+  0%,
+  100% {
+    border-color: #ffd700;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+  }
+  50% {
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 2px rgba(255, 215, 0, 0.1);
+  }
+}
+
+.border-pulse {
+  animation: border-glow 2s ease-in-out infinite;
 }
 </style>

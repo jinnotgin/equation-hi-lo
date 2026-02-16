@@ -1,6 +1,15 @@
 <template>
   <div class="bg-slate-800 p-4 rounded-lg shadow-xl w-full max-w-4xl mx-auto mt-4">
-    <h2 class="text-white text-lg mb-4">Build Your Equation</h2>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-white text-lg">Build Your Equation</h2>
+      <button
+        v-if="hasAnySlotFilled"
+        @click="resetSlots()"
+        class="flex items-center gap-1.5 px-3 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-slate-700 hover:bg-red-900/80 text-slate-300 hover:text-red-200 border border-slate-600 hover:border-red-500 transition-all"
+      >
+        <span class="text-sm">✕</span> Clear All
+      </button>
+    </div>
 
     <!-- Drop Zone -->
     <div
@@ -200,6 +209,8 @@ const slots = ref(Array(9).fill({ item: null }))
 // Track available items locally to handle the drag-drop state
 const availableCards = ref([])
 const availableOps = ref([])
+
+const hasAnySlotFilled = computed(() => slots.value.some((s) => s.item !== null))
 
 onMounted(() => {
   if (player.value) {

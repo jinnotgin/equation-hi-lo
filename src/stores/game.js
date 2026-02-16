@@ -176,6 +176,9 @@ export const useGameStore = defineStore('game', {
       if (alive.length <= 1) {
         this.phase = 'GAME_OVER'
         this.winnerMsg = alive.length === 1 ? `${alive[0].name} wins the game!` : 'Game Over!'
+        this.logAction(
+          `🎮 <strong>Game Over!</strong> ${alive.length === 1 ? alive[0].name + ' wins!' : ''}`,
+        )
         return
       }
 
@@ -185,10 +188,14 @@ export const useGameStore = defineStore('game', {
         const richest = alive.reduce((best, p) => (p.chips > best.chips ? p : best))
         this.phase = 'GAME_OVER'
         this.winnerMsg = `🏆 ${richest.name} wins with ${richest.chips} chips after ${this.maxRounds} rounds!`
+        this.logAction(
+          `🎮 <strong>Game Over!</strong> ${richest.name} wins with $${richest.chips}!`,
+        )
         return
       }
 
       this.phase = 'ANTE'
+      this.logAction(`━━━ <strong>Round ${this.roundNumber}</strong> ━━━`)
       this.pot = 0
       this.currentBet = this.minBet
       this.winnerMsg = null
@@ -724,6 +731,7 @@ export const useGameStore = defineStore('game', {
               isHighWinner: p.id === sp.id,
             }))
             this.winnerMsg = msg
+            this.logAction(`🏆 <strong>${sp.name}</strong> SWING — wins entire pot ($${this.pot})!`)
             this.phase = 'END'
             this.advanceDealer()
             this.checkEliminations()
@@ -830,6 +838,15 @@ export const useGameStore = defineStore('game', {
         this.highTiebreakExplanation = highTiebreakExplanation
 
         this.winnerMsg = msg || 'No winners found (draw/error)'
+        if (bothSides) {
+          this.logAction(
+            `🏆 Low: <strong>${lowWinner.name}</strong> · High: <strong>${highWinner.name}</strong> (pot $${this.pot})`,
+          )
+        } else if (lowWinner) {
+          this.logAction(`🏆 <strong>${lowWinner.name}</strong> wins pot ($${this.pot})`)
+        } else if (highWinner) {
+          this.logAction(`🏆 <strong>${highWinner.name}</strong> wins pot ($${this.pot})`)
+        }
         this.phase = 'END'
         // Advance dealer to next non-eliminated player
         this.advanceDealer()

@@ -50,6 +50,15 @@ watch(
   },
   { deep: true },
 )
+
+watch(isCollapsed, async (val) => {
+  if (!val) {
+    await nextTick()
+    if (logContainer.value) {
+      logContainer.value.scrollTop = logContainer.value.scrollHeight
+    }
+  }
+})
 </script>
 
 <style scoped>
