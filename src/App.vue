@@ -189,17 +189,19 @@
         >
           <div
             v-if="gameStore.announcement && gameStore.announcement.visible"
-            class="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
+            class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto"
           >
-            <div
-              class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-tighter uppercase text-center stroke-text"
-              style="-webkit-text-stroke: 2px black"
-            >
-              {{ gameStore.announcement.msg }}
+            <div class="flex flex-col items-center justify-center">
+              <div
+                class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-tighter uppercase text-center stroke-text transform scale-110"
+                style="-webkit-text-stroke: 2px black"
+              >
+                {{ gameStore.announcement.msg }}
+              </div>
+              <div
+                class="w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent mt-4 shadow-[0_0_15px_#ffd700]"
+              ></div>
             </div>
-            <div
-              class="w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent mt-4"
-            ></div>
           </div>
         </Transition>
 
@@ -769,7 +771,7 @@
       class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center"
     >
       <div
-        class="bg-slate-800 p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6 max-w-xl"
+        class="bg-slate-800 p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6"
       >
         <h3 class="text-gold text-xl font-bold tracking-wider">× Card Drawn!</h3>
 
