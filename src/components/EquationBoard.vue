@@ -201,14 +201,12 @@ const opColor = (op) => {
 const game = useGameStore()
 const player = computed(() => game.players[0])
 
-// Initialize slots. We usually need 7 slots (4 nums + 3 ops).
-// Sqrts are attached to numbers, effectively making them a unit, but visually separate.
-// Simplified for UI: Linear slots. Logic parses them.
-const slots = ref(Array(9).fill({ item: null }))
-
 // Track available items locally to handle the drag-drop state
 const availableCards = ref([])
 const availableOps = ref([])
+
+// Slots are dynamically sized to match cards + operators
+const slots = ref([])
 
 const hasAnySlotFilled = computed(() => slots.value.some((s) => s.item !== null))
 
@@ -217,6 +215,9 @@ onMounted(() => {
     // Filter out special cards (multiply/sqrt) — they modify ops/numbers, not placed in equation
     availableCards.value = player.value.hand.filter((c) => c.type === 'number' || c.type === 'sqrt')
     availableOps.value = [...player.value.ops]
+    // Total slots = number of playable cards + number of operators
+    const totalSlots = availableCards.value.length + availableOps.value.length
+    slots.value = Array.from({ length: totalSlots }, () => ({ item: null }))
   }
 })
 
@@ -252,31 +253,8 @@ const removeSlotItem = (index) => {
 
 // Click to Add Logic
 const addFromHand = (item, type, index) => {
-  // Find target slot
-  let targetIndex = -1
-
-  // 1. Find the right-most filled slot
-  let rightMostFilledIndex = -1
-  for (let i = slots.value.length - 1; i >= 0; i--) {
-    if (slots.value[i].item) {
-      rightMostFilledIndex = i
-      break
-    }
-  }
-
-  if (rightMostFilledIndex === -1) {
-    // No slots filled, go to first (0)
-    targetIndex = 0
-  } else {
-    // Try next slot
-    const nextSlot = rightMostFilledIndex + 1
-    if (nextSlot < slots.value.length) {
-      targetIndex = nextSlot
-    } else {
-      // Logic: "fill whichever empty slot there is from the left"
-      targetIndex = slots.value.findIndex((s) => !s.item)
-    }
-  }
+  // Find the leftmost empty slot
+  const targetIndex = slots.value.findIndex((s) => !s.item)
 
   // If we found a valid slot
   if (targetIndex !== -1) {
@@ -469,13 +447,12 @@ const confirmSwingHigh = () => {
 }
 
 const resetSlots = () => {
-  slots.value = Array(9)
-    .fill(null)
-    .map(() => ({ item: null }))
   // Restore all cards and ops from the player's hand
   if (player.value) {
     availableCards.value = player.value.hand.filter((c) => c.type === 'number' || c.type === 'sqrt')
     availableOps.value = [...player.value.ops]
+    const totalSlots = availableCards.value.length + availableOps.value.length
+    slots.value = Array.from({ length: totalSlots }, () => ({ item: null }))
   }
 }
 </script>
