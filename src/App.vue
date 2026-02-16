@@ -324,7 +324,7 @@
                 {{ me.name }}
                 <Tooltip
                   text="Dealer"
-                  v-if="gameStore.dealerIndex === me.id"
+                  v-if="gameStore.dealerIndex === gameStore.players.length - 1"
                   class="ml-2 inline-flex align-middle"
                 >
                   <span
