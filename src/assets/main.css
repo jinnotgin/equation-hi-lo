@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-felt-green: #0f3d28;
@@ -6,7 +6,7 @@
   --color-gold: #ffd700;
   --color-silver: #c0c0c0;
   --color-bronze: #cd7f32;
-  --font-mono: "Courier New", Courier, monospace;
+  --font-mono: 'Courier New', Courier, monospace;
 }
 
 body {

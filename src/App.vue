@@ -328,12 +328,6 @@
                 </Tooltip>
               </div>
               <div class="text-gold font-mono text-xl">${{ me.chips }}</div>
-              <div
-                v-if="me.role"
-                class="bg-white text-black inline-block px-2 rounded-full font-bold text-xs"
-              >
-                {{ me.role }}
-              </div>
             </div>
 
             <!-- Hand -->
@@ -730,13 +724,12 @@
     </template>
 
     <!-- Discard Operator Modal -->
-    <!-- Discard Operator Modal -->
     <div
       v-if="gameStore.pendingDiscard && isMyTurn"
       class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center"
     >
       <div
-        class="bg-slate-800 p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6 max-w-md"
+        class="bg-slate-800 p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6 max-w-lg"
       >
         <h3 class="text-gold text-xl font-bold tracking-wider">× Card Drawn!</h3>
 
