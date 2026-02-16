@@ -95,10 +95,25 @@ export const useGameStore = defineStore('game', {
     lowTiebreakExplanation: '',
     highTiebreakExplanation: '',
     pendingDiscard: null, // { playerId, cardId } — when human draws multiply, must choose +/- to discard
+    announcement: null, // { msg: string, visible: boolean } for central overlay
     actionLog: [],
   }),
 
   actions: {
+    showAnnouncement(msg) {
+      this.announcement = { msg, visible: true }
+      // Auto-hide after 3s
+      setTimeout(() => {
+        if (this.announcement && this.announcement.msg === msg) {
+          this.announcement.visible = false
+          // Clear null after fade out (allow for 500ms transition)
+          setTimeout(() => {
+            this.announcement = null
+          }, 500)
+        }
+      }, 2500)
+    },
+
     logAction(msg) {
       const time = new Date().toLocaleTimeString([], {
         hour12: false,
@@ -196,6 +211,7 @@ export const useGameStore = defineStore('game', {
 
       this.phase = 'ANTE'
       this.logAction(`━━━ <strong>Round ${this.roundNumber}</strong> ━━━`)
+      this.showAnnouncement(`Round ${this.roundNumber}`)
       this.pot = 0
       this.currentBet = this.minBet
       this.winnerMsg = null
@@ -357,7 +373,7 @@ export const useGameStore = defineStore('game', {
           setTimeout(() => {
             this.precomputeAIDeclarations()
             this.phase = 'SHOWDOWN'
-            this.communityMsg = 'Showdown! Build your equations.'
+            this.showAnnouncement('Showdown!')
             const human = this.players.find((p) => p.isHuman)
             if (human && human.folded) {
               setTimeout(() => this.evaluateShowdown(), 1500)
@@ -397,13 +413,7 @@ export const useGameStore = defineStore('game', {
         return
       }
 
-      if (currentPlayer.isHuman) {
-        const currentTableBet = Math.max(...this.players.map((p) => p.currentBet))
-        const toCall = currentTableBet - currentPlayer.currentBet
-        const callText = toCall === 0 ? 'Check' : `Call $${toCall}`
-        this.communityMsg = `Your Turn. ${callText}, Raise or Fold?`
-      } else {
-        this.communityMsg = `${currentPlayer.name} is thinking...`
+      if (!currentPlayer.isHuman) {
         setTimeout(() => this.aiMove(currentPlayer), 1500)
       }
     },
@@ -526,7 +536,9 @@ export const useGameStore = defineStore('game', {
       } else {
         ai.folded = true
         ai.lastAction = 'Fold'
-        this.communityMsg = `${ai.name} Folded.`
+        this.communityMsg = `${ai.name} Folded.` // Leaving this one? No, remove.
+        ai.folded = true
+        ai.lastAction = 'Fold'
         this.logAction(`${ai.name} folded.`)
       }
 
@@ -544,11 +556,13 @@ export const useGameStore = defineStore('game', {
       player.currentBet += clamped
       player.totalWagered += clamped
       this.pot += clamped
-      this.communityMsg = `${player.name} bets ${amount}`
+      player.totalWagered += clamped
+      this.pot += clamped
+      // this.communityMsg = `${player.name} bets ${amount}` // Remove
       this.logAction(`${player.name} bets ${amount}`)
     },
 
-    nextTurn() {
+    async nextTurn() {
       this.actedCount++
 
       // Find next active player index
@@ -578,7 +592,7 @@ export const useGameStore = defineStore('game', {
         } else if (this.phase === 'ROUND_2') {
           this.precomputeAIDeclarations()
           this.phase = 'SHOWDOWN'
-          this.communityMsg = 'Showdown! Build your equations.'
+          this.showAnnouncement('Showdown!')
           const human = this.players.find((p) => p.isHuman)
           if (human && human.folded) {
             setTimeout(() => this.evaluateShowdown(), 1500)
@@ -656,7 +670,7 @@ export const useGameStore = defineStore('game', {
       if (human) {
         human.folded = true
         human.lastAction = 'Fold'
-        this.communityMsg = 'You Folded.'
+        // this.communityMsg = 'You Folded.' // Remove
         this.logAction('You folded.')
         this.nextTurn()
       }

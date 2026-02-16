@@ -178,7 +178,30 @@
 
       <!-- Content Layer (UI Overlay - No Clipping) -->
       <div class="fixed inset-4 sm:inset-8 flex items-center justify-center">
-        <!-- Floating Phase/Msg Toast (Moved to Bottom Left above Action Log) -->
+        <!-- Central Announcement Overlay -->
+        <Transition
+          enter-active-class="transition duration-500 ease-out"
+          enter-from-class="opacity-0 scale-90"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-300 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-110"
+        >
+          <div
+            v-if="gameStore.announcement && gameStore.announcement.visible"
+            class="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
+          >
+            <div
+              class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-tighter uppercase text-center stroke-text"
+              style="-webkit-text-stroke: 2px black"
+            >
+              {{ gameStore.announcement.msg }}
+            </div>
+            <div
+              class="w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent mt-4"
+            ></div>
+          </div>
+        </Transition>
 
         <!-- Opponents (Top) -->
         <div
@@ -746,7 +769,7 @@
       class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center"
     >
       <div
-        class="bg-slate-800 p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6 max-w-lg"
+        class="bg-slate-800 p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6 max-w-xl"
       >
         <h3 class="text-gold text-xl font-bold tracking-wider">× Card Drawn!</h3>
 
@@ -819,12 +842,7 @@
         <div class="text-white/50 font-bold uppercase tracking-widest text-[10px] drop-shadow-md">
           {{ phaseLabel }}
         </div>
-        <div
-          v-if="gameStore.communityMsg"
-          class="bg-black/90 text-gold px-4 py-2 rounded-lg border border-gold/30 shadow-2xl backdrop-blur text-base font-bold animate-bounce-slight pointer-events-auto max-w-2xl text-left leading-tight"
-        >
-          {{ gameStore.communityMsg }}
-        </div>
+        <!-- Community Msg Removed (Redundant) -->
       </div>
     </div>
   </div>
@@ -1007,7 +1025,6 @@ const action = (type) => {
   } else if (type === 'call') {
     if (toCall.value === 0) {
       me.value.lastAction = 'Check'
-      gameStore.communityMsg = 'You Checked.'
       gameStore.nextTurn()
     } else {
       me.value.lastAction = `Call $${toCall.value}`
