@@ -1,26 +1,10 @@
 <template>
   <div class="min-h-screen bg-felt-green flex flex-col items-center py-8 px-4 font-sans text-slate-100">
     
-    <!-- Top HUD -->
-    <div class="w-full max-w-6xl flex justify-between items-center mb-4 bg-felt-dark p-4 rounded-lg shadow-lg">
+    <!-- Top HUD (Lobby Only) -->
+    <div v-if="gameStore.phase === 'LOBBY'" class="w-full max-w-6xl flex justify-between items-center mb-4 bg-felt-dark p-4 rounded-lg shadow-lg z-20 relative">
       <div>
         <h1 class="text-2xl font-bold text-gold tracking-widest">EQUATION HI-LO</h1>
-        <p class="text-sm opacity-75">Pot: <span class="text-gold font-mono text-xl">${{ gameStore.pot }}</span></p>
-        <p v-if="gameStore.roundNumber" class="text-xs opacity-60">Round {{ gameStore.roundNumber }}{{ gameStore.maxRounds > 0 ? ` / ${gameStore.maxRounds}` : '' }}</p>
-      </div>
-      <div class="text-center">
-         <div class="text-xl font-bold mb-1">{{ phaseLabel }}</div>
-         <div class="bg-black/40 px-4 py-1 rounded text-yellow-300 animate-pulse">{{ gameStore.communityMsg }}</div>
-      </div>
-      <div v-if="gameStore.phase === 'END'">
-        <button @click="gameStore.startRound()" class="bg-gold text-black font-bold px-6 py-2 rounded hover:bg-yellow-400">
-          Next Round
-        </button>
-      </div>
-      <div v-if="gameStore.phase === 'GAME_OVER'">
-        <button @click="gameStore.phase = 'LOBBY'" class="bg-gold text-black font-bold px-6 py-2 rounded hover:bg-yellow-400">
-          New Game
-        </button>
       </div>
     </div>
 
@@ -130,39 +114,90 @@
       <div class="h-16"></div> <!-- Bottom padding spacer -->
     </div>
 
-    <!-- Main Table -->
-    <div v-if="gameStore.phase !== 'LOBBY'" class="relative w-full max-w-6xl aspect-[16/9] bg-felt-dark rounded-full border-[20px] border-slate-800 shadow-2xl flex items-center justify-center">
+    <!-- Main Table (Rounded Poker Table Shape) -->
+    <div v-if="gameStore.phase !== 'LOBBY'" class="fixed inset-4 sm:inset-8 bg-felt-dark border-[20px] border-slate-800 shadow-2xl flex items-center justify-center overflow-hidden rounded-[150px] md:rounded-[300px] lg:rounded-[400px]">
+      
+      <!-- Floating Phase/Msg Toast (Moved to Bottom Left above Action Log) -->
+      <div class="absolute bottom-24 left-4 z-30 flex flex-col items-start gap-2 pointer-events-none">
+        <div class="text-white/50 font-bold uppercase tracking-widest text-sm drop-shadow-md">{{ phaseLabel }}</div>
+        <div v-if="gameStore.communityMsg" class="bg-black/90 text-gold px-6 py-3 rounded-xl border border-gold/30 shadow-2xl backdrop-blur text-lg font-bold animate-bounce-slight pointer-events-auto max-w-xs text-left">
+          {{ gameStore.communityMsg }}
+        </div>
+      </div>
+
+      <!-- Game Over / Next Round Overlay -->
+      <div v-if="gameStore.phase === 'END' || gameStore.phase === 'GAME_OVER'" class="absolute top-24 left-1/2 -translate-x-1/2 z-40">
+        <button v-if="gameStore.phase === 'END'" @click="gameStore.startRound()" class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105">
+          Start Next Round ▶
+        </button>
+        <button v-if="gameStore.phase === 'GAME_OVER'" @click="gameStore.phase = 'LOBBY'" class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105">
+          Back to Lobby ⟳
+        </button>
+      </div>
       
       <!-- Opponents (Top) -->
       <div class="absolute top-6 flex" :class="opponents.length === 1 ? 'gap-0' : opponents.length === 2 ? 'gap-32' : 'gap-16'">
-        <div v-for="p in opponents" :key="p.id" class="flex flex-col items-center transition-opacity duration-300" :class="{'opacity-30 grayscale': p.eliminated, 'opacity-50': p.folded && !p.eliminated, 'scale-110': gameStore.currentTurnIndex === p.id && !p.eliminated}">
-          <div class="w-14 h-14 rounded-full bg-slate-700 border-2 border-slate-500 flex items-center justify-center text-xl relative">
-            {{ p.eliminated ? '💀' : '🤖' }}
-            <div v-if="p.role && !p.eliminated" class="absolute -top-2 -right-2 bg-white text-black w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold">{{p.role}}</div>
+        <div 
+          v-for="p in opponents" :key="p.id"
+          class="flex flex-col items-center transition-all duration-500 p-4 rounded-xl relative"
+          :class="{
+            'opacity-40 scale-95': p.folded, 
+            'opacity-100 scale-100': !p.folded,
+          }"
+        >
+          <!-- Dealer Button -->
+          <div v-if="gameStore.dealerIndex === p.id - 1" class="absolute -top-1 -right-2 bg-white text-black font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-slate-400 z-20 text-xs shadow-md">D</div>
+          
+          <div class="relative">
+            <div class="w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-800 shadow-lg mb-2 relative"
+              :class="gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg ? 'border-gold scale-110' : 'border-slate-600'"
+            >
+              <img :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`" alt="AI" class="w-full h-full" />
+              <!-- Status overlay -->
+              <div v-if="p.folded" class="absolute inset-0 bg-red-900/80 flex items-center justify-center font-bold text-xs uppercase tracking-wider">Fold</div>
+            </div>
+            <!-- Thinking Indicator -->
+            <div v-if="gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg" class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gold text-black text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap animate-pulse">
+              Thinking...
+            </div>
+            
+            <!-- Bet Badge (Moved to avoid center overlap) -->
+            <div v-if="p.currentBet > 0" class="absolute -bottom-4 -right-8 bg-black/80 border border-slate-600 px-2 py-0.5 rounded text-xs text-white shadow font-mono whitespace-nowrap z-20">
+              Bet: {{p.currentBet}}
+            </div>
           </div>
           <span class="font-bold mt-1 text-sm">{{ p.name }}</span>
           <span class="text-gold font-mono text-xs">${{ p.chips }}</span>
           <!-- Cards + Ops row -->
-          <div class="flex items-center gap-1 mt-1">
-            <div class="flex -space-x-4">
-              <Card v-for="(c, i) in p.hand" :key="i" :card="c" :isFaceDown="c.faceDown" class="scale-50 origin-top-left" />
+          <div class="flex items-center gap-2 mt-1">
+            <div class="flex -space-x-1">
+              <Card v-for="(c, i) in p.hand" :key="i" :card="c" :isFaceDown="c.faceDown" :compact="true" class="origin-bottom transition-transform hover:-translate-y-2" />
             </div>
-            <!-- Opponent Operations -->
-            <div class="flex gap-0.5 ml-1">
-              <div v-for="(op, oi) in p.ops" :key="oi" class="w-6 h-6 rounded text-xs font-bold flex items-center justify-center shadow"
+            <!-- Opponent Operations (Styled like Player) -->
+            <div class="flex gap-1 ml-1">
+              <div v-for="(op, oi) in p.ops" :key="oi" class="w-8 h-10 rounded-lg text-lg font-bold flex items-center justify-center shadow-md border-2"
                 :class="opStyle(op)">
                 {{op}}
               </div>
             </div>
           </div>
-          <div v-if="p.currentBet > 0" class="mt-1 bg-black/50 px-2 rounded text-xs">Bet: {{p.currentBet}}</div>
         </div>
       </div>
 
-      <!-- Center Pot/Community -->
-      <div class="text-center z-10">
-         <!-- Showdown Results Panel -->
-         <div v-if="gameStore.winnerMsg && gameStore.showdownResults" class="bg-black/95 text-white p-5 rounded-xl border-2 border-gold max-w-6xl mx-auto">
+      <!-- Center Pot/Community & HUD -->
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10 w-full flex flex-col items-center justify-center pointer-events-none">
+         
+         <!-- Central HUD (Pot & Round) - Hide during Showdown to avoid clutter -->
+         <div v-if="!gameStore.winnerMsg" class="mb-4 flex flex-col items-center animate-pulse-slow">
+            <div class="text-slate-500 text-[10px] uppercase tracking-widest font-bold mb-1">Current Pot</div>
+            <div class="text-gold font-bold text-5xl drop-shadow-lg tracking-wider">${{ gameStore.pot }}</div>
+            <div class="mt-2 text-slate-400 text-xs font-mono opacity-80">
+              Round {{ gameStore.roundNumber }}
+            </div>
+         </div>
+
+         <!-- Showdown Results Panel (Pointer events enabled for interaction/selection text) -->
+         <div v-if="gameStore.winnerMsg && gameStore.showdownResults" class="pointer-events-auto bg-black/95 text-white p-5 rounded-xl border-2 border-gold max-w-6xl mx-auto shadow-2xl">
              <h3 class="text-gold text-xl font-bold mb-4 tracking-wider">🏆 SHOWDOWN RESULTS</h3>
              <!-- 2x2 Grid -->
              <div class="grid grid-cols-2 gap-3">
@@ -263,18 +298,32 @@
       </div>
 
       <!-- Player (Bottom) -->
-      <div class="absolute bottom-10 flex flex-col items-center w-full" :class="{'opacity-50': me.folded}">
-         <div class="flex gap-6 items-end">
+      <div 
+        class="absolute bottom-10 flex flex-col items-center w-full transition-all duration-300 p-4 rounded-xl" 
+        :class="{
+          'opacity-50 grayscale': me.folded,
+          'bg-gradient-to-t from-black/0 via-gold/5 to-black/0': isMyTurn && !gameStore.winnerMsg
+        }"
+      >
+         <div class="flex gap-6 items-end relative">
+            
+            <!-- Dealer Button (Player) -->
+            <div v-if="gameStore.dealerIndex === (gameStore.players.length - 1)" class="absolute -top-2 left-16 bg-white text-black font-bold rounded-full w-8 h-8 flex items-center justify-center border-2 border-slate-400 z-20 shadow-md">D</div>
+
             <!-- Stats -->
             <div class="text-right mb-4">
-                <div class="text-2xl font-bold">{{ me.name }}</div>
+                <div class="text-2xl font-bold" :class="isMyTurn ? 'text-gold scale-110' : 'text-white'">{{ me.name }}</div>
                 <div class="text-gold font-mono text-xl">${{ me.chips }}</div>
                 <div v-if="me.role" class="bg-white text-black inline-block px-2 rounded-full font-bold text-xs">{{me.role}}</div>
             </div>
 
             <!-- Hand -->
-            <div class="flex -space-x-2">
-               <Card v-for="(c, i) in me.hand" :key="i" :card="c" :isFaceDown="false" class="hover:-translate-y-4 transition-transform duration-200" />
+            <div class="flex -space-x-2 perspective-1000">
+               <div v-for="(c, i) in sortedHand" :key="c.id" 
+                    class="transform transition-transform duration-300 hover:-translate-y-4 hover:rotate-2 cursor-pointer z-10"
+                    :style="{ 'z-index': i }">
+                  <Card :card="c" :isFaceDown="false" class="shadow-2xl" />
+               </div>
             </div>
             
             <!-- Operations (styled to match card size) -->
@@ -329,6 +378,7 @@
       </div>
     </div>
 
+      <ActionLog />
   </div>
 </template>
 
@@ -337,6 +387,7 @@ import { ref, computed } from 'vue';
 import { useGameStore } from './stores/game';
 import Card from './components/Card.vue';
 import EquationBoard from './components/EquationBoard.vue';
+import ActionLog from './components/ActionLog.vue';
 
 const gameStore = useGameStore();
 const selectedAiCount = ref(3);
@@ -361,7 +412,20 @@ const maxRaise = computed(() => {
   const remaining = (gameStore.roundBettingCap || Infinity) - (me.value.totalWagered || 0);
   return Math.min(remaining - toCall.value, (me.value.chips || 0) - toCall.value);
 });
+
 const canRaise = computed(() => maxRaise.value >= 10);
+
+const sortedHand = computed(() => {
+  if (!me.value.hand) return [];
+  return [...me.value.hand].sort((a, b) => {
+    // Sort numbers by value (asc), specials at end
+    if (a.type === 'number' && b.type === 'number') return a.value - b.value;
+    if (a.type === 'number') return -1;
+    if (b.type === 'number') return 1;
+    // Sort specials alphabetically (sqrt before x?)
+    return a.type.localeCompare(b.type);
+  });
+});
 
 const adjustRaise = (delta) => {
   raiseAmount.value = Math.max(10, Math.min(raiseAmount.value + delta, maxRaise.value));

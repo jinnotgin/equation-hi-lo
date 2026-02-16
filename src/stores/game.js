@@ -63,13 +63,20 @@ export const useGameStore = defineStore('game', {
     lowTiebreakExplanation: '',
     highTiebreakExplanation: '',
     pendingDiscard: null, // { playerId, cardId } — when human draws multiply, must choose +/- to discard
+    actionLog: [],
   }),
 
   actions: {
+    logAction(msg) {
+      const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      this.actionLog.push({ time, msg });
+    },
+
     initGame(numAi, rounds) {
       if (numAi !== undefined) this.numAiPlayers = numAi;
       if (rounds !== undefined) this.maxRounds = rounds;
       this.roundNumber = 0;
+      this.actionLog = [];
       const totalPlayers = this.numAiPlayers + 1;
 
       // Shuffle name pool and pick — only on first init
@@ -232,10 +239,12 @@ export const useGameStore = defineStore('game', {
       });
       
       this.startBettingRound('ROUND_1');
+      this.logAction(`<strong>Turn 1:</strong> Deal & Betting.`);
     },
 
     dealFourthCard() {
       this.phase = 'DEAL_4';
+      this.logAction(`<strong>Turn 2:</strong> Dealt 4th card.`);
       this.players.forEach(p => {
         if(!p.folded) this.drawCard(p, false);
       });
@@ -344,6 +353,7 @@ export const useGameStore = defineStore('game', {
       } else {
         ai.folded = true;
         this.communityMsg = `${ai.name} Folded.`;
+        this.logAction(`${ai.name} folded.`);
       }
       
       this.nextTurn();
@@ -358,6 +368,7 @@ export const useGameStore = defineStore('game', {
       player.totalWagered += clamped;
       this.pot += clamped;
       this.communityMsg = `${player.name} bets ${amount}`;
+      this.logAction(`${player.name} bets ${amount}`);
     },
 
     nextTurn() {
@@ -397,6 +408,7 @@ export const useGameStore = defineStore('game', {
       this.phase = 'END';
       winner.chips += this.pot;
       this.winnerMsg = `${winner.name} wins ${this.pot} (Others folded)`;
+      this.logAction(`🏆 <strong>${winner.name}</strong> wins ${this.pot} (others folded)`);
       this.advanceDealer();
       this.checkEliminations();
     },
@@ -452,11 +464,11 @@ export const useGameStore = defineStore('game', {
 
             if (p.declaration === 'LOW' || p.declaration === 'SWING') {
                 const diff = Math.abs(lowVal - 1);
-                if (diff < bestLowDiff) {
+                if (diff < bestLowDiff - 1e-6) {
                     bestLowDiff = diff;
                     lowWinner = p;
                     lowTiebreakExplanation = '';
-                } else if (diff === bestLowDiff && lowWinner) {
+                } else if (Math.abs(diff - bestLowDiff) < 1e-6 && lowWinner) {
                     const tb = tiebreak(lowWinner, p, 'LOW');
                     lowWinner = tb.winner;
                     lowTiebreakExplanation = tb.explanation;
@@ -464,11 +476,11 @@ export const useGameStore = defineStore('game', {
             }
             if (p.declaration === 'HIGH' || p.declaration === 'SWING') {
                 const diff = Math.abs(highVal - 20);
-                if (diff < bestHighDiff) {
+                if (diff < bestHighDiff - 1e-6) {
                     bestHighDiff = diff;
                     highWinner = p;
                     highTiebreakExplanation = '';
-                } else if (diff === bestHighDiff && highWinner) {
+                } else if (Math.abs(diff - bestHighDiff) < 1e-6 && highWinner) {
                     const tb = tiebreak(highWinner, p, 'HIGH');
                     highWinner = tb.winner;
                     highTiebreakExplanation = tb.explanation;
