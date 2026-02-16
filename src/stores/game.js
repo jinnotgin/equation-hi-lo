@@ -101,17 +101,22 @@ export const useGameStore = defineStore('game', {
 
   actions: {
     showAnnouncement(msg) {
-      this.announcement = { msg, visible: true }
-      // Auto-hide after 3s
-      setTimeout(() => {
-        if (this.announcement && this.announcement.msg === msg) {
-          this.announcement.visible = false
-          // Clear null after fade out (allow for 500ms transition)
-          setTimeout(() => {
-            this.announcement = null
-          }, 500)
-        }
-      }, 2500)
+      return new Promise((resolve) => {
+        this.announcement = { msg, visible: true }
+        // Auto-hide after 1.5s
+        setTimeout(() => {
+          if (this.announcement && this.announcement.msg === msg) {
+            this.announcement.visible = false
+            // Clear null after fade out (allow for 500ms transition)
+            setTimeout(() => {
+              this.announcement = null
+              resolve()
+            }, 500)
+          } else {
+            resolve()
+          }
+        }, 1500)
+      })
     },
 
     logAction(msg) {
@@ -185,7 +190,7 @@ export const useGameStore = defineStore('game', {
       this.deck = deck
     },
 
-    startRound() {
+    async startRound() {
       // Check for last-player-standing §12
       const alive = this.players.filter((p) => !p.eliminated)
       if (alive.length <= 1) {
@@ -211,7 +216,7 @@ export const useGameStore = defineStore('game', {
 
       this.phase = 'ANTE'
       this.logAction(`━━━ <strong>Round ${this.roundNumber}</strong> ━━━`)
-      this.showAnnouncement(`Round ${this.roundNumber}`)
+      await this.showAnnouncement(`Round ${this.roundNumber}`)
       this.pot = 0
       this.currentBet = this.minBet
       this.winnerMsg = null
@@ -238,18 +243,18 @@ export const useGameStore = defineStore('game', {
 
       // Auto Ante — handle all-in ante (§12)
       this.communityMsg = 'Collecting Ante...'
-      setTimeout(() => {
-        this.players.forEach((p) => {
-          if (p.eliminated || p.folded) return
-          const anteAmt = Math.min(this.minBet, p.chips)
-          p.chips -= anteAmt
-          p.currentBet = anteAmt
-          p.totalWagered = anteAmt
-          p.allIn = p.chips === 0 // mark all-in for ante edge case
-          this.pot += anteAmt
-        })
-        this.dealInitialCards()
-      }, 1000)
+      await new Promise((r) => setTimeout(r, 1000))
+
+      this.players.forEach((p) => {
+        if (p.eliminated || p.folded) return
+        const anteAmt = Math.min(this.minBet, p.chips)
+        p.chips -= anteAmt
+        p.currentBet = anteAmt
+        p.totalWagered = anteAmt
+        p.allIn = p.chips === 0 // mark all-in for ante edge case
+        this.pot += anteAmt
+      })
+      this.dealInitialCards()
     },
 
     drawCard(player, isFaceDown = false) {
@@ -354,7 +359,7 @@ export const useGameStore = defineStore('game', {
       this.startBettingRound('ROUND_2')
     },
 
-    startBettingRound(nextPhase) {
+    async startBettingRound(nextPhase) {
       this.phase = nextPhase
       this.currentBet = 0 // Reset for the round structure (simplified poker)
       this.players.forEach((p) => {
@@ -368,17 +373,18 @@ export const useGameStore = defineStore('game', {
       if (allAtCap) {
         this.communityMsg = 'Betting cap reached — skipping betting.'
         if (nextPhase === 'ROUND_1') {
-          setTimeout(() => this.dealFourthCard(), 1000)
+          await new Promise((r) => setTimeout(r, 1000))
+          this.dealFourthCard()
         } else {
-          setTimeout(() => {
-            this.precomputeAIDeclarations()
-            this.phase = 'SHOWDOWN'
-            this.showAnnouncement('Showdown!')
-            const human = this.players.find((p) => p.isHuman)
-            if (human && human.folded) {
-              setTimeout(() => this.evaluateShowdown(), 1500)
-            }
-          }, 1000)
+          await new Promise((r) => setTimeout(r, 1000))
+          this.precomputeAIDeclarations()
+          await this.showAnnouncement('Showdown!')
+          this.phase = 'SHOWDOWN'
+          const human = this.players.find((p) => p.isHuman)
+          if (human && human.folded) {
+            await new Promise((r) => setTimeout(r, 1500))
+            this.evaluateShowdown()
+          }
         }
         return
       }
@@ -590,12 +596,14 @@ export const useGameStore = defineStore('game', {
           this.dealFourthCard()
           return
         } else if (this.phase === 'ROUND_2') {
+          await new Promise((r) => setTimeout(r, 1000))
           this.precomputeAIDeclarations()
+          await this.showAnnouncement('Showdown!')
           this.phase = 'SHOWDOWN'
-          this.showAnnouncement('Showdown!')
           const human = this.players.find((p) => p.isHuman)
           if (human && human.folded) {
-            setTimeout(() => this.evaluateShowdown(), 1500)
+            await new Promise((r) => setTimeout(r, 1500))
+            this.evaluateShowdown()
           }
           return
         }
