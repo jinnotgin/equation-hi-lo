@@ -245,16 +245,16 @@
             <span class="text-gold font-mono text-base">${{ p.chips }}</span>
             <!-- Cards + Ops row -->
             <div class="flex items-center gap-2 mt-1.5 relative">
-              <div class="flex -space-x-1">
+              <TransitionGroup name="deal-card" tag="div" class="flex -space-x-1">
                 <Card
                   v-for="(c, i) in p.hand"
-                  :key="i"
+                  :key="c.id || i"
                   :card="c"
                   :isFaceDown="c.faceDown"
                   :compact="true"
                   class="origin-bottom transition-transform hover:-translate-y-2 hover:rotate-1"
                 />
-              </div>
+              </TransitionGroup>
               <!-- Opponent Operations (Styled like Player) -->
               <div class="flex gap-1 ml-1">
                 <div
@@ -346,7 +346,7 @@
             </div>
 
             <!-- Hand -->
-            <div class="flex -space-x-2 perspective-1000">
+            <TransitionGroup name="deal-card" tag="div" class="flex -space-x-2 perspective-1000">
               <div
                 v-for="(c, i) in sortedHand"
                 :key="c.id"
@@ -355,7 +355,7 @@
               >
                 <Card :card="c" :isFaceDown="false" class="shadow-2xl" />
               </div>
-            </div>
+            </TransitionGroup>
 
             <!-- Operations (styled to match card size) -->
             <div class="flex gap-1.5 mb-2">
@@ -1054,6 +1054,22 @@ watch(
 body {
   margin: 0;
   overflow: hidden;
+}
+
+/* Card deal-in animation */
+.deal-card-enter-active {
+  animation: card-deal-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes card-deal-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.7) rotate(-5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
 }
 
 @keyframes toast-pop {
