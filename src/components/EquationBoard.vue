@@ -262,11 +262,18 @@ const confirmSwingHigh = () => {
         else if (s.item.type === 'sqrt') eqStr += '√';
         else if (s.item.type === 'op') eqStr += ` ${s.item.value} `;
     });
+    player.value.lowEqStr = savedLowEqStr.value;
+    player.value.highEqStr = eqStr.trim();
     player.value.equationStr = `L: ${savedLowEqStr.value} | H: ${eqStr.trim()}`;
     game.submitEquation(0, 'SWING', savedLowResult.value, res);
 };
 
 const resetSlots = () => {
-    slots.value.forEach(s => s.item = null);
+    slots.value = Array(9).fill(null).map(() => ({ item: null }));
+    // Restore all cards and ops from the player's hand
+    if (player.value) {
+        availableCards.value = player.value.hand.filter(c => c.type === 'number' || c.type === 'sqrt');
+        availableOps.value = [...player.value.ops];
+    }
 };
 </script>

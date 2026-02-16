@@ -562,14 +562,18 @@ export const useGameStore = defineStore('game', {
               name: p.name,
               declaration: p.declaration,
               result: p.declaration === 'SWING' 
-                ? `L:${parseFloat(p.lowResult).toFixed(2)} H:${parseFloat(p.highResult).toFixed(2)}`
+                ? null  // handled separately in UI
                 : p.finalResult,
+              lowResult: p.declaration === 'SWING' ? p.lowResult : null,
+              highResult: p.declaration === 'SWING' ? p.highResult : null,
+              lowEqStr: p.lowEqStr || null,
+              highEqStr: p.highEqStr || null,
               equation: p.equationStr || '(built manually)',
               isLowWinner: lowWinner && lowWinner.id === p.id,
               isHighWinner: highWinner && highWinner.id === p.id,
               diff: p.declaration === 'SWING' ? null : parseFloat(diff.toFixed(4)),
-              lowDiff,
-              highDiff,
+              lowDiff: p.declaration === 'SWING' ? parseFloat(Math.abs((p.lowResult || 0) - 1).toFixed(4)) : null,
+              highDiff: p.declaration === 'SWING' ? parseFloat(Math.abs((p.highResult || 0) - 20).toFixed(4)) : null,
               hand: p.hand.filter(c => c.type === 'number' || c.type === 'sqrt'),
               ops: [...p.ops],
             };

@@ -9,7 +9,7 @@
         <p v-if="gameStore.roundNumber" class="text-xs opacity-60">Round {{ gameStore.roundNumber }}{{ gameStore.maxRounds > 0 ? ` / ${gameStore.maxRounds}` : '' }}</p>
       </div>
       <div class="text-center">
-         <div class="text-xl font-bold mb-1">{{ gameStore.phase }}</div>
+         <div class="text-xl font-bold mb-1">{{ phaseLabel }}</div>
          <div class="bg-black/40 px-4 py-1 rounded text-yellow-300 animate-pulse">{{ gameStore.communityMsg }}</div>
       </div>
       <div v-if="gameStore.phase === 'END'">
@@ -101,7 +101,7 @@
       <!-- Center Pot/Community -->
       <div class="text-center z-10">
          <!-- Showdown Results Panel -->
-         <div v-if="gameStore.winnerMsg && gameStore.showdownResults" class="bg-black/95 text-white p-5 rounded-xl border-2 border-gold max-w-4xl mx-auto">
+         <div v-if="gameStore.winnerMsg && gameStore.showdownResults" class="bg-black/95 text-white p-5 rounded-xl border-2 border-gold max-w-6xl mx-auto">
              <h3 class="text-gold text-xl font-bold mb-4 tracking-wider">🏆 SHOWDOWN RESULTS</h3>
              <!-- 2x2 Grid -->
              <div class="grid grid-cols-2 gap-3">
@@ -119,31 +119,71 @@
                    </div>
                    <span class="text-[10px] text-slate-400 uppercase tracking-wide">{{ r.declaration }}</span>
                  </div>
-                 <!-- Visual equation: cards + ops interleaved -->
-                 <div class="flex items-center gap-1 flex-wrap mb-2">
-                   <template v-for="(item, j) in interleaveEquation(r.hand, r.ops)" :key="j">
-                     <!-- Mini card -->
-                     <div v-if="item.kind === 'card'" class="w-8 h-11 rounded border bg-slate-100 flex flex-col items-center justify-center text-xs font-bold"
-                       :class="{'border-yellow-500': item.suit === 'gold', 'border-gray-400': item.suit === 'silver', 'border-orange-600': item.suit === 'bronze', 'border-slate-400': item.suit === 'black'}"
-                     >
-                       <span :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-black': item.suit === 'black'}">{{ item.value }}</span>
-                       <span v-if="item.suit" class="text-[7px] uppercase opacity-60" :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze'}">{{ item.suit }}</span>
+
+                 <!-- SWING: two equation blocks -->
+                 <template v-if="r.declaration === 'SWING'">
+                   <!-- LOW equation -->
+                   <div class="mb-2">
+                     <div class="text-[10px] text-blue-400 font-bold uppercase mb-1">Low → Target 1</div>
+                     <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                       <template v-for="(item, j) in interleaveEquation(r.hand, r.ops, r.lowEqStr)" :key="'l'+j">
+                         <div v-if="item.kind === 'card'" class="w-10 h-14 rounded-lg border-2 bg-slate-100 flex flex-col items-center justify-center text-xs font-bold shadow-sm"
+                           :class="{'border-yellow-500': item.suit === 'gold', 'border-gray-400': item.suit === 'silver', 'border-orange-600': item.suit === 'bronze', 'border-slate-400': item.suit === 'black', 'border-purple-400': item.type === 'sqrt'}"
+                         >
+                           <span :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-slate-800': item.suit === 'black', 'text-purple-700': item.type === 'sqrt'}">{{ item.value }}</span>
+                           <span v-if="item.suit" class="text-[7px] uppercase font-semibold opacity-70" :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-slate-600': item.suit === 'black'}">{{ item.suit }}</span>
+                         </div>
+                         <div v-else class="w-7 h-14 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm" :class="opColorMini(item.value)">{{ item.value }}</div>
+                       </template>
                      </div>
-                     <!-- Mini op -->
-                     <div v-else class="w-6 h-8 rounded flex items-center justify-center text-xs font-bold"
-                       :class="opColorMini(item.value)"
-                     >{{ item.value }}</div>
-                   </template>
-                 </div>
-                 <!-- Result + diff -->
-                 <div class="flex items-baseline gap-2">
-                   <span class="font-mono font-bold text-lg" :class="r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-200'">
-                     = {{ typeof r.result === 'number' ? r.result.toFixed(2) : r.result }}
-                   </span>
-                   <span v-if="r.diff != null" class="text-xs font-mono" :class="r.diff === 0 ? 'text-green-400' : r.diff < 1 ? 'text-yellow-400' : 'text-slate-500'">
-                     ({{ r.declaration === 'LOW' ? 'Δ1' : 'Δ20' }}: {{ r.diff.toFixed(2) }})
-                   </span>
-                 </div>
+                     <div class="flex items-baseline gap-2">
+                       <span class="font-mono font-bold text-base text-blue-300">= {{ r.lowResult != null ? r.lowResult.toFixed(2) : '?' }}</span>
+                       <span v-if="r.lowDiff != null" class="text-xs font-mono" :class="r.lowDiff === 0 ? 'text-green-400' : r.lowDiff < 1 ? 'text-yellow-400' : 'text-slate-500'">(Δ1: {{ r.lowDiff.toFixed(2) }})</span>
+                     </div>
+                   </div>
+                   <!-- HIGH equation -->
+                   <div>
+                     <div class="text-[10px] text-red-400 font-bold uppercase mb-1">High → Target 20</div>
+                     <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                       <template v-for="(item, j) in interleaveEquation(r.hand, r.ops, r.highEqStr)" :key="'h'+j">
+                         <div v-if="item.kind === 'card'" class="w-10 h-14 rounded-lg border-2 bg-slate-100 flex flex-col items-center justify-center text-xs font-bold shadow-sm"
+                           :class="{'border-yellow-500': item.suit === 'gold', 'border-gray-400': item.suit === 'silver', 'border-orange-600': item.suit === 'bronze', 'border-slate-400': item.suit === 'black', 'border-purple-400': item.type === 'sqrt'}"
+                         >
+                           <span :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-slate-800': item.suit === 'black', 'text-purple-700': item.type === 'sqrt'}">{{ item.value }}</span>
+                           <span v-if="item.suit" class="text-[7px] uppercase font-semibold opacity-70" :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-slate-600': item.suit === 'black'}">{{ item.suit }}</span>
+                         </div>
+                         <div v-else class="w-7 h-14 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm" :class="opColorMini(item.value)">{{ item.value }}</div>
+                       </template>
+                     </div>
+                     <div class="flex items-baseline gap-2">
+                       <span class="font-mono font-bold text-base text-red-300">= {{ r.highResult != null ? r.highResult.toFixed(2) : '?' }}</span>
+                       <span v-if="r.highDiff != null" class="text-xs font-mono" :class="r.highDiff === 0 ? 'text-green-400' : r.highDiff < 1 ? 'text-yellow-400' : 'text-slate-500'">(Δ20: {{ r.highDiff.toFixed(2) }})</span>
+                     </div>
+                   </div>
+                 </template>
+
+                 <!-- Normal (non-swing) equation -->
+                 <template v-else>
+                   <div class="flex items-center gap-1.5 flex-wrap mb-3">
+                     <template v-for="(item, j) in interleaveEquation(r.hand, r.ops, r.equation)" :key="j">
+                       <div v-if="item.kind === 'card'" class="w-12 h-16 rounded-lg border-2 bg-slate-100 flex flex-col items-center justify-center text-sm font-bold shadow-sm"
+                         :class="{'border-yellow-500': item.suit === 'gold', 'border-gray-400': item.suit === 'silver', 'border-orange-600': item.suit === 'bronze', 'border-slate-400': item.suit === 'black', 'border-purple-400': item.type === 'sqrt'}"
+                       >
+                         <span :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-slate-800': item.suit === 'black', 'text-purple-700': item.type === 'sqrt'}">{{ item.value }}</span>
+                         <span v-if="item.suit" class="text-[8px] uppercase font-semibold opacity-70" :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-slate-600': item.suit === 'black'}">{{ item.suit }}</span>
+                       </div>
+                       <div v-else class="w-9 h-16 rounded-lg flex items-center justify-center text-base font-bold shadow-sm" :class="opColorMini(item.value)">{{ item.value }}</div>
+                     </template>
+                   </div>
+                   <div class="flex items-baseline gap-2">
+                     <span class="font-mono font-bold text-lg" :class="r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-200'">
+                       = {{ typeof r.result === 'number' ? r.result.toFixed(2) : r.result }}
+                     </span>
+                     <span v-if="r.diff != null" class="text-xs font-mono" :class="r.diff === 0 ? 'text-green-400' : r.diff < 1 ? 'text-yellow-400' : 'text-slate-500'">
+                       ({{ r.declaration === 'LOW' ? 'Δ1' : 'Δ20' }}: {{ r.diff.toFixed(2) }})
+                     </span>
+                   </div>
+                 </template>
                </div>
              </div>
              <!-- Tiebreaker explanation -->
@@ -243,6 +283,13 @@ const selectedRounds = ref(10);
 
 const me = computed(() => gameStore.players[0] || { hand: [], ops: [], chips: 0 });
 const opponents = computed(() => gameStore.players.slice(1));
+const phaseLabel = computed(() => {
+  const labels = {
+    LOBBY: 'Lobby', ANTE: 'Ante', ROUND_1: 'Betting 1', DEAL_4: 'Deal',
+    ROUND_2: 'Betting 2', SHOWDOWN: 'Showdown', END: 'End', GAME_OVER: 'Game Over'
+  };
+  return labels[gameStore.phase] || gameStore.phase;
+});
 const isMyTurn = computed(() => gameStore.currentTurnIndex === 0);
 
 const maxBetOnTable = computed(() => Math.max(...gameStore.players.map(p => p.currentBet), 0));
@@ -258,15 +305,39 @@ const adjustRaise = (delta) => {
   raiseAmount.value = Math.max(10, Math.min(raiseAmount.value + delta, maxRaise.value));
 };
 
-// Interleave cards and operators for visual equation display: card op card op card ...
-const interleaveEquation = (hand, ops) => {
+// Parse equationStr to display cards in correct equation order, matching to hand for suit info
+const interleaveEquation = (hand, ops, equationStr) => {
   const result = [];
-  if (!hand || !ops) return result;
-  for (let i = 0; i < hand.length; i++) {
-    const c = hand[i];
-    result.push({ kind: 'card', value: c.type === 'sqrt' ? '√' : c.value, suit: c.suit, type: c.type });
-    if (i < ops.length) {
-      result.push({ kind: 'op', value: ops[i] });
+  if (!equationStr || !hand) return result;
+  const tokens = equationStr.trim().split(/\s+/);
+  const available = [...hand]; // copy to track consumed cards
+  for (const token of tokens) {
+    if (['+', '-', '×', '÷'].includes(token)) {
+      result.push({ kind: 'op', value: token });
+    } else if (token.startsWith('√')) {
+      // √ card followed by the number it applies to
+      const sqrtIdx = available.findIndex(c => c.type === 'sqrt');
+      if (sqrtIdx >= 0) {
+        result.push({ kind: 'card', value: '√', type: 'sqrt' });
+        available.splice(sqrtIdx, 1);
+      }
+      const numVal = parseFloat(token.slice(1));
+      if (!isNaN(numVal)) {
+        const numIdx = available.findIndex(c => c.type === 'number' && c.value === numVal);
+        if (numIdx >= 0) {
+          result.push({ kind: 'card', value: available[numIdx].value, suit: available[numIdx].suit, type: 'number' });
+          available.splice(numIdx, 1);
+        }
+      }
+    } else {
+      const numVal = parseFloat(token);
+      if (!isNaN(numVal)) {
+        const numIdx = available.findIndex(c => c.type === 'number' && c.value === numVal);
+        if (numIdx >= 0) {
+          result.push({ kind: 'card', value: available[numIdx].value, suit: available[numIdx].suit, type: 'number' });
+          available.splice(numIdx, 1);
+        }
+      }
     }
   }
   return result;
