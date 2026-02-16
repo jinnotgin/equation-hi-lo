@@ -361,8 +361,9 @@ export const useGameStore = defineStore('game', {
       this.logAction(`<strong>Turn 1:</strong> Deal & Betting.`)
     },
 
-    dealFourthCard() {
+    async dealFourthCard() {
       this.phase = 'DEAL_4'
+      await this.showAnnouncement('4th Card')
       this.logAction(`<strong>Turn 2:</strong> Dealt 4th card.`)
       this.players.forEach((p) => {
         if (!p.folded) this.drawCard(p, false)
@@ -389,7 +390,7 @@ export const useGameStore = defineStore('game', {
         this.communityMsg = 'Betting cap reached — skipping betting.'
         if (nextPhase === 'ROUND_1') {
           await new Promise((r) => setTimeout(r, 1000))
-          this.dealFourthCard()
+          await this.dealFourthCard()
         } else {
           await new Promise((r) => setTimeout(r, 1000))
           this.precomputeAIDeclarations()
@@ -608,7 +609,7 @@ export const useGameStore = defineStore('game', {
 
       if (allMatched && (everyoneActed || backToAggressor)) {
         if (this.phase === 'ROUND_1') {
-          this.dealFourthCard()
+          await this.dealFourthCard()
           return
         } else if (this.phase === 'ROUND_2') {
           await new Promise((r) => setTimeout(r, 1000))
