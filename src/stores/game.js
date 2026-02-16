@@ -551,8 +551,14 @@ export const useGameStore = defineStore('game', {
       // Find next active player index
       let nextIndex = (this.currentTurnIndex + 1) % this.players.length
 
-      // Check for round end condition
+      // Check for fold-win FIRST — if only 1 player remains, they win immediately
       const active = this.players.filter((p) => !p.folded)
+      if (active.length === 1) {
+        this.endRoundFold(active[0])
+        return
+      }
+
+      // Check for round end condition
       const maxBet = Math.max(...this.players.map((p) => p.currentBet))
       const allMatched = active.every((p) => p.currentBet === maxBet || p.chips === 0)
 
