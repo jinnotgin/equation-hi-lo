@@ -18,17 +18,27 @@ function tiebreak(a, b, side) {
   const bNumbers = b.hand.filter(c => c.type === 'number');
 
   if (side === 'HIGH') {
-    // Compare highest-value card
     const aMax = aNumbers.reduce((best, c) => (!best || c.value > best.value || (c.value === best.value && HIGH_SUIT_PRIORITY[c.suit] > HIGH_SUIT_PRIORITY[best.suit])) ? c : best, null);
     const bMax = bNumbers.reduce((best, c) => (!best || c.value > best.value || (c.value === best.value && HIGH_SUIT_PRIORITY[c.suit] > HIGH_SUIT_PRIORITY[best.suit])) ? c : best, null);
-    if (aMax.value !== bMax.value) return aMax.value > bMax.value ? a : b;
-    return HIGH_SUIT_PRIORITY[aMax.suit] > HIGH_SUIT_PRIORITY[bMax.suit] ? a : b;
+    if (aMax.value !== bMax.value) {
+      const winner = aMax.value > bMax.value ? a : b;
+      const wCard = aMax.value > bMax.value ? aMax : bMax;
+      return { winner, explanation: `Tiebreaker: highest card ${wCard.value} (${wCard.suit})` };
+    }
+    const winner = HIGH_SUIT_PRIORITY[aMax.suit] > HIGH_SUIT_PRIORITY[bMax.suit] ? a : b;
+    const wCard = HIGH_SUIT_PRIORITY[aMax.suit] > HIGH_SUIT_PRIORITY[bMax.suit] ? aMax : bMax;
+    return { winner, explanation: `Tiebreaker: same value ${wCard.value}, suit ${wCard.suit} wins` };
   } else {
-    // Compare lowest-value card
     const aMin = aNumbers.reduce((best, c) => (!best || c.value < best.value || (c.value === best.value && LOW_SUIT_PRIORITY[c.suit] > LOW_SUIT_PRIORITY[best.suit])) ? c : best, null);
     const bMin = bNumbers.reduce((best, c) => (!best || c.value < best.value || (c.value === best.value && LOW_SUIT_PRIORITY[c.suit] > LOW_SUIT_PRIORITY[best.suit])) ? c : best, null);
-    if (aMin.value !== bMin.value) return aMin.value < bMin.value ? a : b;
-    return LOW_SUIT_PRIORITY[aMin.suit] > LOW_SUIT_PRIORITY[bMin.suit] ? a : b;
+    if (aMin.value !== bMin.value) {
+      const winner = aMin.value < bMin.value ? a : b;
+      const wCard = aMin.value < bMin.value ? aMin : bMin;
+      return { winner, explanation: `Tiebreaker: lowest card ${wCard.value} (${wCard.suit})` };
+    }
+    const winner = LOW_SUIT_PRIORITY[aMin.suit] > LOW_SUIT_PRIORITY[bMin.suit] ? a : b;
+    const wCard = LOW_SUIT_PRIORITY[aMin.suit] > LOW_SUIT_PRIORITY[bMin.suit] ? aMin : bMin;
+    return { winner, explanation: `Tiebreaker: same value ${wCard.value}, suit ${wCard.suit} wins` };
   }
 }
 
@@ -50,6 +60,8 @@ export const useGameStore = defineStore('game', {
     maxRounds: 10, // 0 = unlimited (elimination only)
     roundNumber: 0,
     showdownResults: null,
+    lowTiebreakExplanation: '',
+    highTiebreakExplanation: '',
     pendingDiscard: null, // { playerId, cardId } — when human draws multiply, must choose +/- to discard
   }),
 
@@ -427,6 +439,8 @@ export const useGameStore = defineStore('game', {
         let highWinner = null;
         let bestLowDiff = Infinity;
         let bestHighDiff = Infinity;
+        let lowTiebreakExplanation = '';
+        let highTiebreakExplanation = '';
 
         const active = this.players.filter(p => !p.folded);
         const swingPlayers = active.filter(p => p.declaration === 'SWING');
@@ -441,8 +455,11 @@ export const useGameStore = defineStore('game', {
                 if (diff < bestLowDiff) {
                     bestLowDiff = diff;
                     lowWinner = p;
+                    lowTiebreakExplanation = '';
                 } else if (diff === bestLowDiff && lowWinner) {
-                    lowWinner = tiebreak(lowWinner, p, 'LOW');
+                    const tb = tiebreak(lowWinner, p, 'LOW');
+                    lowWinner = tb.winner;
+                    lowTiebreakExplanation = tb.explanation;
                 }
             }
             if (p.declaration === 'HIGH' || p.declaration === 'SWING') {
@@ -450,8 +467,11 @@ export const useGameStore = defineStore('game', {
                 if (diff < bestHighDiff) {
                     bestHighDiff = diff;
                     highWinner = p;
+                    highTiebreakExplanation = '';
                 } else if (diff === bestHighDiff && highWinner) {
-                    highWinner = tiebreak(highWinner, p, 'HIGH');
+                    const tb = tiebreak(highWinner, p, 'HIGH');
+                    highWinner = tb.winner;
+                    highTiebreakExplanation = tb.explanation;
                 }
             }
         });
@@ -527,15 +547,36 @@ export const useGameStore = defineStore('game', {
             msg += `High: ${highWinner.name} (${parseFloat(highWinner.finalResult).toFixed(2)}) wins entire pot!`;
         }
 
-        // Build showdown results for display
-        this.showdownResults = active.map(p => ({
-            name: p.name,
-            declaration: p.declaration,
-            result: p.finalResult,
-            equation: p.equationStr || '(built manually)',
-            isLowWinner: lowWinner && lowWinner.id === p.id,
-            isHighWinner: highWinner && highWinner.id === p.id,
-        }));
+        // Build showdown results for display with diffs and tiebreaker info
+        this.showdownResults = active.map(p => {
+            const target = (p.declaration === 'LOW' || p.declaration === 'SWING') ? 1 : 20;
+            const result = typeof p.finalResult === 'number' ? p.finalResult : 0;
+            const diff = Math.abs(result - target);
+            // For SWING, show both diffs
+            let lowDiff = null, highDiff = null;
+            if (p.declaration === 'SWING') {
+              lowDiff = Math.abs((p.lowResult || 0) - 1);
+              highDiff = Math.abs((p.highResult || 0) - 20);
+            }
+            return {
+              name: p.name,
+              declaration: p.declaration,
+              result: p.declaration === 'SWING' 
+                ? `L:${parseFloat(p.lowResult).toFixed(2)} H:${parseFloat(p.highResult).toFixed(2)}`
+                : p.finalResult,
+              equation: p.equationStr || '(built manually)',
+              isLowWinner: lowWinner && lowWinner.id === p.id,
+              isHighWinner: highWinner && highWinner.id === p.id,
+              diff: p.declaration === 'SWING' ? null : parseFloat(diff.toFixed(4)),
+              lowDiff,
+              highDiff,
+              hand: p.hand.filter(c => c.type === 'number' || c.type === 'sqrt'),
+              ops: [...p.ops],
+            };
+        });
+        // Attach tiebreaker explanations
+        this.lowTiebreakExplanation = lowTiebreakExplanation;
+        this.highTiebreakExplanation = highTiebreakExplanation;
 
         this.winnerMsg = msg;
         this.phase = 'END';

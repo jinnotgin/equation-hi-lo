@@ -101,30 +101,59 @@
       <!-- Center Pot/Community -->
       <div class="text-center z-10">
          <!-- Showdown Results Panel -->
-         <div v-if="gameStore.winnerMsg && gameStore.showdownResults" class="bg-black/90 text-white p-6 rounded-xl border-2 border-gold max-w-lg mx-auto">
-             <h3 class="text-gold text-lg font-bold mb-4 tracking-wider">🏆 SHOWDOWN RESULTS</h3>
-             <div class="space-y-3">
+         <div v-if="gameStore.winnerMsg && gameStore.showdownResults" class="bg-black/95 text-white p-5 rounded-xl border-2 border-gold max-w-4xl mx-auto">
+             <h3 class="text-gold text-xl font-bold mb-4 tracking-wider">🏆 SHOWDOWN RESULTS</h3>
+             <!-- 2x2 Grid -->
+             <div class="grid grid-cols-2 gap-3">
                <div 
                  v-for="(r, i) in gameStore.showdownResults" :key="i"
-                 class="flex items-center justify-between bg-slate-800/80 rounded-lg px-4 py-3 border"
+                 class="bg-slate-800/80 rounded-lg px-4 py-3 border"
                  :class="r.isLowWinner || r.isHighWinner ? 'border-gold' : 'border-slate-700'"
                >
-                 <div class="text-left flex-1">
+                 <!-- Name + badges row -->
+                 <div class="flex items-center justify-between mb-2">
                    <div class="font-bold text-sm" :class="r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-300'">
                      {{ r.name }}
-                     <span v-if="r.isLowWinner" class="ml-1 text-xs bg-blue-600 px-2 py-0.5 rounded text-white">LOW 🏆</span>
-                     <span v-if="r.isHighWinner" class="ml-1 text-xs bg-red-600 px-2 py-0.5 rounded text-white">HIGH 🏆</span>
+                     <span v-if="r.isLowWinner" class="ml-1 text-[10px] bg-blue-600 px-1.5 py-0.5 rounded text-white">LOW 🏆</span>
+                     <span v-if="r.isHighWinner" class="ml-1 text-[10px] bg-red-600 px-1.5 py-0.5 rounded text-white">HIGH 🏆</span>
                    </div>
-                   <div class="text-xs text-slate-400 font-mono mt-1">{{ r.equation }}</div>
+                   <span class="text-[10px] text-slate-400 uppercase tracking-wide">{{ r.declaration }}</span>
                  </div>
-                 <div class="text-right ml-4">
-                   <div class="text-xs text-slate-400 uppercase">{{ r.declaration }}</div>
-                   <div class="font-mono font-bold text-lg" :class="r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-300'">
+                 <!-- Visual equation: cards + ops interleaved -->
+                 <div class="flex items-center gap-1 flex-wrap mb-2">
+                   <template v-for="(item, j) in interleaveEquation(r.hand, r.ops)" :key="j">
+                     <!-- Mini card -->
+                     <div v-if="item.kind === 'card'" class="w-8 h-11 rounded border bg-slate-100 flex flex-col items-center justify-center text-xs font-bold"
+                       :class="{'border-yellow-500': item.suit === 'gold', 'border-gray-400': item.suit === 'silver', 'border-orange-600': item.suit === 'bronze', 'border-slate-400': item.suit === 'black'}"
+                     >
+                       <span :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze', 'text-black': item.suit === 'black'}">{{ item.value }}</span>
+                       <span v-if="item.suit" class="text-[7px] uppercase opacity-60" :class="{'text-yellow-600': item.suit === 'gold', 'text-gray-500': item.suit === 'silver', 'text-orange-700': item.suit === 'bronze'}">{{ item.suit }}</span>
+                     </div>
+                     <!-- Mini op -->
+                     <div v-else class="w-6 h-8 rounded flex items-center justify-center text-xs font-bold"
+                       :class="opColorMini(item.value)"
+                     >{{ item.value }}</div>
+                   </template>
+                 </div>
+                 <!-- Result + diff -->
+                 <div class="flex items-baseline gap-2">
+                   <span class="font-mono font-bold text-lg" :class="r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-200'">
                      = {{ typeof r.result === 'number' ? r.result.toFixed(2) : r.result }}
-                   </div>
+                   </span>
+                   <span v-if="r.diff != null" class="text-xs font-mono" :class="r.diff === 0 ? 'text-green-400' : r.diff < 1 ? 'text-yellow-400' : 'text-slate-500'">
+                     ({{ r.declaration === 'LOW' ? 'Δ1' : 'Δ20' }}: {{ r.diff.toFixed(2) }})
+                   </span>
                  </div>
                </div>
              </div>
+             <!-- Tiebreaker explanation -->
+             <div v-if="gameStore.lowTiebreakExplanation || gameStore.highTiebreakExplanation" class="mt-3 p-2.5 bg-amber-900/30 border border-amber-700/50 rounded-lg">
+               <div class="text-amber-300 text-xs font-semibold mb-1">⚖️ Tie Detected</div>
+               <div v-if="gameStore.lowTiebreakExplanation" class="text-amber-200/80 text-[11px] font-mono">LOW: {{ gameStore.lowTiebreakExplanation }}</div>
+               <div v-if="gameStore.highTiebreakExplanation" class="text-amber-200/80 text-[11px] font-mono">HIGH: {{ gameStore.highTiebreakExplanation }}</div>
+             </div>
+             <!-- Winner message -->
+             <div class="mt-3 text-center text-sm text-slate-300">{{ gameStore.winnerMsg }}</div>
          </div>
          <!-- Fallback for fold wins -->
          <div v-else-if="gameStore.winnerMsg" class="bg-black/80 text-white p-6 rounded-xl border-2 border-gold mb-4 max-w-md mx-auto">
@@ -227,6 +256,31 @@ const canRaise = computed(() => maxRaise.value >= 10);
 
 const adjustRaise = (delta) => {
   raiseAmount.value = Math.max(10, Math.min(raiseAmount.value + delta, maxRaise.value));
+};
+
+// Interleave cards and operators for visual equation display: card op card op card ...
+const interleaveEquation = (hand, ops) => {
+  const result = [];
+  if (!hand || !ops) return result;
+  for (let i = 0; i < hand.length; i++) {
+    const c = hand[i];
+    result.push({ kind: 'card', value: c.type === 'sqrt' ? '√' : c.value, suit: c.suit, type: c.type });
+    if (i < ops.length) {
+      result.push({ kind: 'op', value: ops[i] });
+    }
+  }
+  return result;
+};
+
+// Smaller op color styling for showdown grid
+const opColorMini = (op) => {
+  switch (op) {
+    case '+': return 'bg-emerald-700 text-white';
+    case '-': return 'bg-rose-700 text-white';
+    case '÷': return 'bg-sky-700 text-white';
+    case '×': return 'bg-amber-600 text-black';
+    default: return 'bg-slate-600 text-white';
+  }
 };
 
 // Color coding for operations to make them visually distinct
