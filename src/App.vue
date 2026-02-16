@@ -213,10 +213,13 @@
           <div
             v-for="p in opponents"
             :key="p.id"
-            class="flex flex-col items-center transition-all duration-500 p-4 rounded-xl relative"
+            class="flex flex-col items-center transition-all duration-500 p-4 rounded-xl relative border"
             :class="{
               'opacity-40 scale-95': p.folded,
               'opacity-100 scale-100': !p.folded,
+              'border-white/20 bg-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)]':
+                gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg,
+              'border-transparent': !(gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg),
             }"
           >
             <div class="relative">
@@ -312,13 +315,13 @@
             v-if="!gameStore.winnerMsg"
             class="mb-4 flex flex-col items-center animate-pulse-slow"
           >
-            <div class="text-slate-500 text-[10px] uppercase tracking-widest font-bold mb-1">
+            <div class="text-slate-500 text-base uppercase tracking-widest font-bold mb-1">
               Current Pot
             </div>
             <div class="text-gold font-bold text-5xl drop-shadow-lg tracking-wider">
               ${{ gameStore.pot }}
             </div>
-            <div class="mt-2 text-slate-400 text-xs font-mono opacity-80">
+            <div class="mt-2 text-slate-400 text-base font-mono opacity-80">
               Round {{ gameStore.roundNumber }}
             </div>
           </div>
@@ -326,10 +329,13 @@
 
         <!-- Player (Bottom) -->
         <div
-          class="absolute bottom-10 flex flex-col items-center w-full transition-all duration-300 p-4 rounded-xl"
+          class="absolute bottom-10 flex flex-col items-center px-12 py-8 transition-all duration-300 p-4 rounded-xl border"
           :class="{
             'opacity-50 grayscale': me.folded,
             'bg-gradient-to-t from-black/0 via-gold/5 to-black/0': isMyTurn && !gameStore.winnerMsg,
+            'border-white/20 bg-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)]':
+              isMyTurn && !gameStore.winnerMsg,
+            'border-transparent': !(isMyTurn && !gameStore.winnerMsg),
           }"
         >
           <!-- Player Bet Badge (Moved Top) -->
@@ -900,17 +906,7 @@ const maxRaise = computed(() => {
 
 const canRaise = computed(() => maxRaise.value >= 10)
 
-const sortedHand = computed(() => {
-  if (!me.value.hand) return []
-  return [...me.value.hand].sort((a, b) => {
-    // Sort numbers by value (asc), specials at end
-    if (a.type === 'number' && b.type === 'number') return a.value - b.value
-    if (a.type === 'number') return -1
-    if (b.type === 'number') return 1
-    // Sort specials alphabetically (sqrt before x?)
-    return a.type.localeCompare(b.type)
-  })
-})
+const sortedHand = computed(() => me.value.hand || [])
 
 const confirmExit = () => {
   if (confirm('Are you sure you want to exit? Your game progress will be lost.')) {
