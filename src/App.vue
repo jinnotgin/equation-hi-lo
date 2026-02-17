@@ -1195,19 +1195,21 @@ const actionToastStyle = (action) => {
 
 const action = (type) => {
   if (type === 'fold') {
+    gameStore.actedSinceLastAction.push(0)
     gameStore.humanFold()
   } else if (type === 'call') {
     if (toCall.value === 0) {
       me.value.lastAction = 'Check'
-      gameStore.nextTurn()
     } else {
       me.value.lastAction = `Call $${toCall.value}`
       gameStore.placeBet(me.value, toCall.value)
-      gameStore.nextTurn()
     }
+    gameStore.actedSinceLastAction.push(0)
+    gameStore.nextTurn()
   } else if (type === 'raise') {
     me.value.lastAction = `Raise $${raiseAmount.value}`
     gameStore.placeBet(me.value, toCall.value + raiseAmount.value)
+    gameStore.actedSinceLastAction = [0] // Reset on raise
     gameStore.lastAggressorIndex = 0
     gameStore.nextTurn()
   }

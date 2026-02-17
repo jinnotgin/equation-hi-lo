@@ -127,7 +127,7 @@ export const useGameStore = defineStore('game', {
     communityMsg: 'Welcome to Equation Hi-Lo',
     winnerMsg: null,
     lastAggressorIndex: -1,
-    actedCount: 0,
+    actedSinceLastAction: [],
     numAiPlayers: 3,
     maxRounds: 10, // 0 = unlimited (elimination only)
     roundNumber: 0,
@@ -491,7 +491,7 @@ export const useGameStore = defineStore('game', {
       }
       this.currentTurnIndex = firstIndex
       this.lastAggressorIndex = -1 // no one has raised yet
-      this.actedCount = 0
+      this.actedSinceLastAction = []
       this.processTurn()
     },
 
@@ -503,14 +503,6 @@ export const useGameStore = defineStore('game', {
       }
 
       // Check if betting round is done (everyone called or checked)
-      // const maxCurrentBet = Math.max(...this.players.map((p) => p.currentBet))
-      // const allMatched = activePlayers.every((p) => p.currentBet === maxCurrentBet || p.chips === 0)
-
-      // Logic for "End of Betting Round" is tricky. Simplified:
-      // If we cycled back to start and bets match, move on.
-      // We'll use a simple counter or check state in a real engine,
-      // here we assume if it's the start player's turn again and matched.
-
       const currentPlayer = this.players[this.currentTurnIndex]
 
       if (currentPlayer.folded) {
@@ -578,26 +570,30 @@ export const useGameStore = defineStore('game', {
       // Pot odds: what fraction of the total pot is your call?
       // Lower = better odds = more reason to stay in.
       const potOddsRatio = toCall / (this.pot + toCall + 0.01)
-      const cheapCall = potOddsRatio < 0.33 // getting 2:1 or better
-      const decentOdds = potOddsRatio < 0.45 // reasonable odds
+      const cheapCall = potOddsRatio < 0.25 // getting 3:1 or better
+      const decentOdds = potOddsRatio < 0.38 // reasonable odds
 
       let action = 'fold'
       const roll = Math.random()
 
       if (toCall === 0) {
         // Free to check — NEVER fold
-        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.4) {
+        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.55) {
+          // was 0.4
           action = 'raise'
-        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.85) {
+        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.9) {
+          // was 0.85
           action = 'raise'
         } else {
           action = 'check'
         }
       } else if (bestEv > 0) {
         // Positive EV — lean toward calling or raising
-        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.3) {
+        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.5) {
+          // was 0.3
           action = 'raise'
-        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.9) {
+        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.92) {
+          // was 0.9
           action = 'raise'
         } else {
           action = 'call'
@@ -621,11 +617,11 @@ export const useGameStore = defineStore('game', {
             } else if (decentOdds) {
               action = roll > 0.4 ? 'call' : 'fold' // 60% call
             } else {
-              action = roll > 0.55 ? 'call' : 'fold' // 45% call even at bad odds
+              action = roll > 0.55 ? 'call' : 'fold' // 35% call
             }
           } else {
             // Round 2: hand is final, be more cautious
-            action = cheapCall && roll > 0.4 ? 'call' : 'fold'
+            action = cheapCall && roll > 0.55 ? 'call' : 'fold' // 45% call
           }
         } else if (bestTier === 'weak') {
           // Weak hands: only stay if it's Round 1 AND cheap
@@ -644,10 +640,10 @@ export const useGameStore = defineStore('game', {
       if (action === 'raise') {
         const raiseBase =
           bestTier === 'elite'
-            ? Math.max(20, Math.floor(this.pot * 0.5))
-            : Math.max(10, Math.floor(this.pot * 0.3))
-        const raiseAmt = raiseBase + Math.floor(Math.random() * 2) * 10
-        const maxRaise = Math.floor(ai.chips * 0.4)
+            ? Math.max(10, Math.floor(this.pot * 0.3)) // was 0.5
+            : Math.max(10, Math.floor(this.pot * 0.15)) // was 0.3
+        const raiseAmt = raiseBase + Math.floor(Math.random() * 2) * 5 // was * 10
+        const maxRaise = Math.floor(ai.chips * 0.25) // was 0.4
         const finalRaise = Math.max(10, Math.round(Math.min(raiseAmt, maxRaise) / 10) * 10)
 
         const maxAdditional = this.roundBettingCap - ai.totalWagered
@@ -656,19 +652,24 @@ export const useGameStore = defineStore('game', {
           ai.hasRaisedThisRound = true
           this.lastAggressorIndex = ai.id
           ai.lastAction = `Raise $${finalRaise}`
+          // Reset: everyone must respond to the raise
+          this.actedSinceLastAction = [ai.id]
         } else {
           const callAmt = Math.min(toCall, ai.chips)
           this.placeBet(ai, callAmt)
           ai.lastAction = toCall === 0 ? 'Check' : `Call $${callAmt}`
+          this.actedSinceLastAction.push(ai.id)
         }
       } else if (action === 'call' || action === 'check') {
         const callAmt = Math.min(toCall, ai.chips)
         this.placeBet(ai, callAmt)
         ai.lastAction = toCall === 0 ? 'Check' : `Call $${callAmt}`
+        this.actedSinceLastAction.push(ai.id)
       } else {
         ai.folded = true
         ai.lastAction = 'Fold'
         this.logAction(`${ai.name} folded.`)
+        this.actedSinceLastAction.push(ai.id)
       }
 
       setTimeout(() => {
@@ -688,9 +689,6 @@ export const useGameStore = defineStore('game', {
     },
 
     async nextTurn() {
-      this.actedCount++
-
-      // Find next active player index (skipping folded)
       let nextIndex = (this.currentTurnIndex + 1) % this.players.length
       let loops = 0
       while (this.players[nextIndex].folded && loops < this.players.length) {
@@ -698,25 +696,19 @@ export const useGameStore = defineStore('game', {
         loops++
       }
 
-      // Check for fold-win FIRST — if only 1 player remains, they win immediately
       const active = this.players.filter((p) => !p.folded)
       if (active.length === 1) {
         this.endRoundFold(active[0])
         return
       }
 
-      // Check for round end condition
       const maxBet = Math.max(...this.players.map((p) => p.currentBet))
       const allMatched = active.every((p) => p.currentBet === maxBet || p.chips === 0)
 
-      // Round ends when:
-      // 1. Everyone has acted at least once AND all bets match, OR
-      // 2. We've come back to the last aggressor and all bets match
-      const everyoneActed = this.actedCount >= active.length
-      // logic: if next active player is the aggressor, we've completed the circle
-      const backToAggressor = this.lastAggressorIndex >= 0 && nextIndex === this.lastAggressorIndex
+      // every active player must have explicitly acted
+      const everyoneActed = active.every((p) => this.actedSinceLastAction.includes(p.id))
 
-      if (allMatched && (everyoneActed || backToAggressor)) {
+      if (allMatched && everyoneActed) {
         if (this.phase === 'ROUND_1') {
           await this.dealFourthCard()
           return
