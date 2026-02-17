@@ -3,6 +3,8 @@
 _A game of poker-style betting meets mathematical equation building_
 _Inspired by "The Devil's Plan" (Netflix), created by Jung Jong-yeon_
 
+🎮 Play it here: [https://hi-lo.pages.dev/](https://hi-lo.pages.dev/)
+
 ---
 
 ## 1. Overview
