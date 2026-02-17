@@ -482,8 +482,14 @@ export const useGameStore = defineStore('game', {
         return
       }
 
-      // Start Left of Dealer
-      this.currentTurnIndex = (this.dealerIndex + 1) % this.players.length
+      // Start Left of Dealer (skipping folded)
+      let firstIndex = (this.dealerIndex + 1) % this.players.length
+      let loops = 0
+      while (this.players[firstIndex].folded && loops < this.players.length) {
+        firstIndex = (firstIndex + 1) % this.players.length
+        loops++
+      }
+      this.currentTurnIndex = firstIndex
       this.lastAggressorIndex = -1 // no one has raised yet
       this.actedCount = 0
       this.processTurn()
@@ -684,8 +690,13 @@ export const useGameStore = defineStore('game', {
     async nextTurn() {
       this.actedCount++
 
-      // Find next active player index
+      // Find next active player index (skipping folded)
       let nextIndex = (this.currentTurnIndex + 1) % this.players.length
+      let loops = 0
+      while (this.players[nextIndex].folded && loops < this.players.length) {
+        nextIndex = (nextIndex + 1) % this.players.length
+        loops++
+      }
 
       // Check for fold-win FIRST — if only 1 player remains, they win immediately
       const active = this.players.filter((p) => !p.folded)
@@ -702,6 +713,7 @@ export const useGameStore = defineStore('game', {
       // 1. Everyone has acted at least once AND all bets match, OR
       // 2. We've come back to the last aggressor and all bets match
       const everyoneActed = this.actedCount >= active.length
+      // logic: if next active player is the aggressor, we've completed the circle
       const backToAggressor = this.lastAggressorIndex >= 0 && nextIndex === this.lastAggressorIndex
 
       if (allMatched && (everyoneActed || backToAggressor)) {
