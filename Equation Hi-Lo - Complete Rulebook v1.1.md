@@ -1,11 +1,7 @@
-Here's the rewritten rulebook with expanded details on pot mechanics, the betting cap, odd-chip handling, and other edge cases I identified:
-
----
-
 # Equation Hi-Lo — Complete Rulebook
 
-*A game of poker-style betting meets mathematical equation building*
-*Inspired by "The Devil's Plan" (Netflix), created by Jung Jong-yeon*
+_A game of poker-style betting meets mathematical equation building_
+_Inspired by "The Devil's Plan" (Netflix), created by Jung Jong-yeon_
 
 ---
 
@@ -18,19 +14,23 @@ Equation Hi-Lo is a chip-based card game where players construct mathematical eq
 ## 2. Components
 
 ### The Main Deck (52 cards)
-| Card Type | Details | Count |
-|---|---|---|
-| **Number cards** | Values 0–10 in four suits: Gold, Silver, Bronze, Black | 44 |
-| **Multiply (×) cards** | 4 total (no suit) | 4 |
-| **Square Root (√) cards** | 4 total (no suit) | 4 |
+
+| Card Type                 | Details                                                | Count |
+| ------------------------- | ------------------------------------------------------ | ----- |
+| **Number cards**          | Values 0–10 in four suits: Gold, Silver, Bronze, Black | 44    |
+| **Multiply (×) cards**    | 4 total (no suit)                                      | 4     |
+| **Square Root (√) cards** | 4 total (no suit)                                      | 4     |
 
 ### Given Operation Cards (per player, per round)
+
 Each player receives these three operation cards at the start of every round. These are **not** drawn from the deck and are returned/refreshed each round:
+
 - **Plus (+)**
 - **Minus (−)**
 - **Divide (÷)**
 
 ### Other Materials
+
 - Poker chips (quantity and denominations agreed upon by players)
 - Declaration tiles or tokens (for declaring 1, 20, or both)
 - **Win Order reference card** (for tiebreaking — see Section 9)
@@ -62,6 +62,7 @@ All players place the agreed minimum bet into the pot.
 
 **2. Deal — First 3 Cards**
 Each player receives 3 cards from the deck:
+
 - **Card 1:** Dealt **face-down** (closed) — only the player may look at it. **This card must be a number card.** If a × or √ is drawn, it is returned to the deck and the player draws again until they receive a number.
 - **Cards 2 & 3:** Dealt **face-up** (open) — visible to all players. These may be number cards, × cards, or √ cards. Special draw rules apply (see Section 5).
 
@@ -84,6 +85,7 @@ All remaining players declare their target and reveal their equations (see Secti
 ### Drawing a Square Root (√)
 
 When a player draws a √ card from the deck (in any open card position):
+
 1. The √ card is placed face-up in front of the player.
 2. The player draws **1 additional card** from the deck (must be a number card — if another √ or × is drawn, see below).
 3. The player keeps **all three** given operation cards (+, −, ÷). No discard is required.
@@ -92,19 +94,20 @@ When a player draws a √ card from the deck (in any open card position):
 ### Drawing a Multiply (×)
 
 When a player draws a × card from the deck (in any open card position):
+
 1. The × card is placed face-up in front of the player.
 2. The player draws **1 additional card** from the deck (must be a number card).
 3. The player **must discard** either their **+** or **−** card (player's choice). The × replaces the discarded operation as one of the player's three binary operators.
 
 ### Multiple Special Cards
 
-| Scenario | Handling |
-|---|---|
-| **2 √ cards** | Draw 1 extra number for each √. No operations discarded. Player has: 4 numbers, 2 √ modifiers, +, −, ÷. |
-| **2 × cards** | Draw 1 extra number for each ×. Discard **both** + and −. Player has: 4 numbers, ×, ×, ÷. |
-| **1 √ and 1 ×** | Draw 1 extra number for each. Discard either + or − for the ×. Player has: 4 numbers, 1 √ modifier, ×, ÷, and one of +/−. |
-| **3 × cards** *(extremely rare)* | The 3rd × is ignored and the player draws the next card from the deck instead. |
-| **3 √ cards** | Draw 1 extra number for each √. No discards. Player has: 4 numbers, 3 √ modifiers, +, −, ÷. |
+| Scenario                         | Handling                                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **2 √ cards**                    | Draw 1 extra number for each √. No operations discarded. Player has: 4 numbers, 2 √ modifiers, +, −, ÷.                   |
+| **2 × cards**                    | Draw 1 extra number for each ×. Discard **both** + and −. Player has: 4 numbers, ×, ×, ÷.                                 |
+| **1 √ and 1 ×**                  | Draw 1 extra number for each. Discard either + or − for the ×. Player has: 4 numbers, 1 √ modifier, ×, ÷, and one of +/−. |
+| **3 × cards** _(extremely rare)_ | The 3rd × is ignored and the player draws the next card from the deck instead.                                            |
+| **3 √ cards**                    | Draw 1 extra number for each √. No discards. Player has: 4 numbers, 3 √ modifiers, +, −, ÷.                               |
 
 > **Note:** When drawing extra cards due to × or √, if the extra draw itself is a × or √, apply the same special rules recursively. If this leads to an impossible state (e.g., needing to discard an operation card that has already been discarded), ignore the special card and draw the next card instead.
 
@@ -124,12 +127,12 @@ If the betting cap has been reached (all players have wagered the maximum), **re
 
 During each betting round, players act in clockwise order starting from the player to the dealer's left, with the following options:
 
-| Action | Description |
-|---|---|
-| **Check** | Pass without betting (only if no one has bet yet in this betting round). |
-| **Bet / Raise** | Place or increase the current bet, up to the betting cap. |
-| **Call** | Match the current bet amount. |
-| **Fold** | Forfeit your hand and any chips already wagered. You are out of the round. |
+| Action          | Description                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| **Check**       | Pass without betting (only if no one has bet yet in this betting round).   |
+| **Bet / Raise** | Place or increase the current bet, up to the betting cap.                  |
+| **Call**        | Match the current bet amount.                                              |
+| **Fold**        | Forfeit your hand and any chips already wagered. You are out of the round. |
 
 - A betting round ends when all active players have acted and all bets are equalized.
 - All standard poker betting etiquette applies (no string bets, etc.).
@@ -140,10 +143,10 @@ During each betting round, players act in clockwise order starting from the play
 
 After the final betting round, all remaining players **simultaneously** declare their target using tiles or tokens:
 
-| Declaration | Meaning |
-|---|---|
-| **1 (Low)** | Your equation aims to be as close to **1** as possible. |
-| **20 (High)** | Your equation aims to be as close to **20** as possible. |
+| Declaration        | Meaning                                                                                                                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1 (Low)**        | Your equation aims to be as close to **1** as possible.                                                                                                                                                        |
+| **20 (High)**      | Your equation aims to be as close to **20** as possible.                                                                                                                                                       |
 | **1 & 20 (Swing)** | You will construct **two** equations — one targeting 1 and one targeting 20 — using the **same set of cards** rearranged differently. You must **win both sides** or you **lose everything** (see Section 10). |
 
 ---
@@ -161,13 +164,14 @@ Each player arranges **all** of their cards (number cards and operation cards) i
 - The equation is evaluated using **standard order of operations (PEMDAS)**:
   1. √ (applied to its number first)
   2. × and ÷ (left to right)
-  3. + and − (left to right)
+  3. - and − (left to right)
 - Results **can be negative**, fractional, or zero.
 - **Division by zero is not permitted.** A player may not construct an equation that results in division by zero.
 
 ### Example Equations
 
 **Targeting 1 (Low):**
+
 ```
 √4 ÷ 7 + 9 − 8
 = 2 ÷ 7 + 9 − 8
@@ -177,6 +181,7 @@ Distance from 1: |1.286 − 1| = 0.286
 ```
 
 **Targeting 20 (High):**
+
 ```
 8 × 3 ÷ 1 − 4
 = 24 ÷ 1 − 4
@@ -192,6 +197,7 @@ Distance from 20: |20 − 20| = 0
 ### Splitting the Pot
 
 The pot is divided into **two equal halves**:
+
 - **Low Half** — awarded to the best Low (1) declarer.
 - **High Half** — awarded to the best High (20) declarer.
 
@@ -200,6 +206,7 @@ The pot is divided into **two equal halves**:
 ### Odd-Chip Rule
 
 When the pot contains an **odd number of chips** and must be split between Low and High:
+
 - Each side receives **floor(pot ÷ 2)** chips.
 - The **remaining 1 chip is removed from the game** (kept by the house).
 
@@ -209,13 +216,13 @@ This rule applies to **any** pot split that results in a remainder — the lefto
 
 ### Pot Scenarios
 
-| Scenario | Result |
-|---|---|
-| **Both sides have declarers** | Pot splits 50/50 (minus any odd chip). Each side's winner takes their half. |
-| **Nobody declared Low** | The entire pot goes to the High winner. |
-| **Nobody declared High** | The entire pot goes to the Low winner. |
-| **All players declare the same side** | The entire pot goes to the winner of that side. The other side has no declarers, so no split occurs. |
-| **All players fold except one** | The remaining player wins the entire pot immediately without showdown (no equation needed, no declaration needed). |
+| Scenario                              | Result                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Both sides have declarers**         | Pot splits 50/50 (minus any odd chip). Each side's winner takes their half.                                        |
+| **Nobody declared Low**               | The entire pot goes to the High winner.                                                                            |
+| **Nobody declared High**              | The entire pot goes to the Low winner.                                                                             |
+| **All players declare the same side** | The entire pot goes to the winner of that side. The other side has no declarers, so no split occurs.               |
+| **All players fold except one**       | The remaining player wins the entire pot immediately without showdown (no equation needed, no declaration needed). |
 
 ---
 
@@ -224,16 +231,18 @@ This rule applies to **any** pot split that results in a remainder — the lefto
 When two or more players' equations are **equally close** to the target, the tie is broken as follows:
 
 ### Step 1: Compare Key Number Card
+
 - **High (20) tie:** Compare the **highest-value number card** in each tied player's hand. The player with the higher number wins.
 - **Low (1) tie:** Compare the **lowest-value number card** in each tied player's hand. The player with the lower number wins.
 
 ### Step 2: Compare Suit (if numbers are identical)
+
 If the key number cards have the same value, compare their **suits**:
 
-| Tie Type | Suit Priority (strongest → weakest) |
-|---|---|
-| **High (20)** | Gold > Silver > Bronze > Black |
-| **Low (1)** | Black > Bronze > Silver > Gold |
+| Tie Type      | Suit Priority (strongest → weakest) |
+| ------------- | ----------------------------------- |
+| **High (20)** | Gold > Silver > Bronze > Black      |
+| **Low (1)**   | Black > Bronze > Silver > Gold      |
 
 > **Note:** Since each card in the deck is unique (a specific value + suit combination), the suit comparison will always produce a definitive winner. True ties are impossible.
 
@@ -251,14 +260,14 @@ A swing bet is a high-risk, high-reward play:
 
 ### Swing Pot Scenarios
 
-| Scenario | Result |
-|---|---|
-| **Swing player wins both sides** | Swing player takes the **entire pot**. No other player receives anything. |
-| **Swing player wins Low but loses High** | Swing player receives **nothing**. Low half goes to the **next best** Low declarer (if any; otherwise the Low half also goes to the High winner). High half goes to the High winner. |
-| **Swing player wins High but loses Low** | Swing player receives **nothing**. Same logic reversed. |
-| **Swing player loses both sides** | Swing player receives **nothing**. Each side's winner takes their half normally. |
-| **Swing player is the only declarer on a side** | The swing player automatically wins that side (uncontested). They still must win the other side too. |
-| **No other declarers exist on either side** | The swing player wins both sides by default and takes the entire pot. |
+| Scenario                                        | Result                                                                                                                                                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Swing player wins both sides**                | Swing player takes the **entire pot**. No other player receives anything.                                                                                                            |
+| **Swing player wins Low but loses High**        | Swing player receives **nothing**. Low half goes to the **next best** Low declarer (if any; otherwise the Low half also goes to the High winner). High half goes to the High winner. |
+| **Swing player wins High but loses Low**        | Swing player receives **nothing**. Same logic reversed.                                                                                                                              |
+| **Swing player loses both sides**               | Swing player receives **nothing**. Each side's winner takes their half normally.                                                                                                     |
+| **Swing player is the only declarer on a side** | The swing player automatically wins that side (uncontested). They still must win the other side too.                                                                                 |
+| **No other declarers exist on either side**     | The swing player wins both sides by default and takes the entire pot.                                                                                                                |
 
 > **Note on ties involving a swing player:** If the swing player ties on one side (resolved via tiebreaker in Section 10), the tiebreaker result counts. A tiebreaker win counts as a win for swing purposes; a tiebreaker loss counts as a loss and the swing fails.
 
@@ -285,16 +294,18 @@ Alternatively, the game may end when all players except one have been eliminated
 
 Each player's hand at showdown consists of:
 
-| Component | Source | Quantity |
-|---|---|---|
-| Number cards | Drawn from deck | 4 (always, after special draw adjustments) |
-| Binary operations | Given + drawn | 3 (always: some combination of +, −, ÷, ×) |
-| √ modifiers | Drawn from deck | 0–3 (unary, each applied to one number) |
+| Component         | Source          | Quantity                                   |
+| ----------------- | --------------- | ------------------------------------------ |
+| Number cards      | Drawn from deck | 4 (always, after special draw adjustments) |
+| Binary operations | Given + drawn   | 3 (always: some combination of +, −, ÷, ×) |
+| √ modifiers       | Drawn from deck | 0–3 (unary, each applied to one number)    |
 
 The equation always follows the structure:
+
 ```
 [√]Number ○ [√]Number ○ [√]Number ○ [√]Number
 ```
+
 Where `○` represents one of the 3 binary operations, and `[√]` is optionally applied.
 
 ---
@@ -303,28 +314,13 @@ Where `○` represents one of the 3 binary operations, and `[√]` is optionally
 
 These situations are rare but should be decided before starting:
 
-1. **Can √ be nested?** (e.g., √(√9) = √3 ≈ 1.732) — *Recommended: No. Each √ applies to exactly one number card.*
+1. **Can √ be nested?** (e.g., √(√9) = √3 ≈ 1.732) — _Recommended: No. Each √ applies to exactly one number card._
 2. **√ of non-perfect squares:** Results in irrational numbers (e.g., √7 ≈ 2.6458). These are valid and computed to reasonable precision.
 3. **Swing bet ties:** If a swing bettor ties on one side, the standard tiebreaker (Section 10) determines the result. A tiebreaker win counts as a win for swing purposes.
-4. **Number of rounds:** Fixed number, timed session, or elimination-style? — *Agree before play.*
+4. **Number of rounds:** Fixed number, timed session, or elimination-style? — _Agree before play._
 5. **Player count:** The deck supports roughly 2–8 players comfortably, depending on how many special cards are drawn.
 6. **Starting chip count:** Recommended 50–100 chips per player with an ante of 1–2 chips.
 
 ---
 
-*Good luck, and may your equations be precise!*
-
----
-
-Here's a summary of the key changes and additions:
-
-| Section | What Changed |
-|---|---|
-| **§6 Betting** | Added the **Betting Cap** rule (max wager = lowest stack). Added skip logic when cap is reached. |
-| **§9 Pot Distribution** | **New section.** Detailed 50/50 split mechanics, the **odd-chip rule** (remainder discarded), and all pot scenarios in one place. |
-| **§10 Tiebreaking** | Added note that true ties are impossible due to unique card identities. |
-| **§11 Swing Bet** | Expanded with a full scenario table covering what happens when the swing player wins one side, loses one side, or is the only declarer. |
-| **§12 Player Elimination** | **New section.** Covers zero-chip elimination and the edge case of having exactly the ante amount. |
-| **§15 House Rules** | Added √ of non-perfect squares, starting chip recommendations. |
-
-Shall I proceed with the Vue 3 implementation now?
+_Good luck, and may your equations be precise!_

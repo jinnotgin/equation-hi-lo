@@ -1,44 +1,69 @@
-# .
+# Equation Hi-Lo ♠
 
-This template should help get you started developing with Vue 3 in Vite.
+> A poker-style game where **math is your weapon**. Combine your cards into an equation to hit the target number.
 
-## Recommended IDE Setup
+Based on the game from the Netflix show _"The Devil's Plan"_, created by Jung Jong-yeon.
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+---
 
-## Recommended Browser Setup
+### Created By
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+**[Jin](https://linjin.me)** © 2026
 
-## Customize configuration
+**Built via Agentic Engineering using:**
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+- [Claude 4.6 Opus](https://www.anthropic.com/news/claude-opus-4-6)
+- [Gemini 3 Pro](https://blog.google/products-and-platforms/products/gemini/gemini-3/)
 
-## Project Setup
+---
 
-```sh
-npm install
-```
+## 🎮 How to Play
 
-### Compile and Hot-Reload for Development
+**Objective:**
+Construct a mathematical equation using your cards to get a result as close as possible to **1 (Low)** or **20 (High)**.
 
-```sh
-npm run dev
-```
+### Game Flow
 
-### Compile and Minify for Production
+1. **Ante:** Everyone pays a fixed ante to start.
+2. **Deal:** Get number cards and math operators (`+`, `-`, `÷`).
+   - _Special cards:_ `√` (Square Root) and `×` (Multiply).
+3. **Bet:** Raise, call, or fold like in poker.
+4. **Showdown:** Arrange your cards to make an equation targeting 1 or 20.
 
-```sh
-npm run build
-```
+### Winning the Pot
 
-### Lint with [ESLint](https://eslint.org/)
+- **Target 1 (Low):** Closest result to 1 wins half the pot.
+- **Target 20 (High):** Closest result to 20 wins half the pot.
+- **Swing:** Declare **BOTH** Low and High! You must win both sides to take the entire pot (high risk, high reward).
 
-```sh
-npm run lint
-```
+---
+
+## 🛠 Tech Stack
+
+- **Framework:** Vue 3
+- **Build Tool:** Vite
+- **Styling:** Tailwind CSS + Vanilla CSS (Felt/Table Aesthetics)
+- **State Management:** Pinia
+
+## 🚀 Development Setup
+
+1. **Install dependencies:**
+
+   ```sh
+   npm install
+   ```
+
+2. **Run locally:**
+
+   ```sh
+   npm run dev
+   ```
+
+3. **Build for production:**
+   ```sh
+   npm run build
+   ```
+
+---
+
+_Good luck, and may your equations be precise!_
