@@ -19,6 +19,8 @@ const HIGH_THRESHOLDS = {
 
 // ── Estimated base win probability per tier (heads-up, one side) ──
 const TIER_WIN_PROB = { elite: 0.85, strong: 0.65, decent: 0.4, weak: 0.2, junk: 0.05 }
+const TIER_TIE_PROB = { elite: 0.24, strong: 0.16, decent: 0.1, weak: 0.06, junk: 0.03 }
+const TIEBREAK_EQUITY_WEIGHT = 0.18
 
 // ── Numeric rank for tier comparison ──
 const TIER_RANK = { elite: 5, strong: 4, decent: 3, weak: 2, junk: 1 }
@@ -72,6 +74,61 @@ function estimateWinProb(tier, sameSideOpponents) {
   return Math.min(0.95, base * Math.pow(0.75, sameSideOpponents - 1))
 }
 
+function getHighKeyCard(numbers) {
+  return numbers.reduce(
+    (best, c) =>
+      !best ||
+      c.value > best.value ||
+      (c.value === best.value && HIGH_SUIT_PRIORITY[c.suit] > HIGH_SUIT_PRIORITY[best.suit])
+        ? c
+        : best,
+    null,
+  )
+}
+
+function getLowKeyCard(numbers) {
+  return numbers.reduce(
+    (best, c) =>
+      !best ||
+      c.value < best.value ||
+      (c.value === best.value && LOW_SUIT_PRIORITY[c.suit] > LOW_SUIT_PRIORITY[best.suit])
+        ? c
+        : best,
+    null,
+  )
+}
+
+/**
+ * Returns side-specific tiebreak edge in [-1, 1].
+ * Positive means stronger-than-average tiebreak card for that side.
+ */
+function getTiebreakEdges(numbers) {
+  const highCard = getHighKeyCard(numbers)
+  const lowCard = getLowKeyCard(numbers)
+  const maxRank = 44
+
+  const highRank = highCard ? highCard.value * 4 + HIGH_SUIT_PRIORITY[highCard.suit] : maxRank / 2
+  const lowRank = lowCard
+    ? (10 - lowCard.value) * 4 + LOW_SUIT_PRIORITY[lowCard.suit]
+    : maxRank / 2
+
+  const normalize = (rank) => ((rank - 1) / (maxRank - 1)) * 2 - 1
+  return { highEdge: normalize(highRank), lowEdge: normalize(lowRank) }
+}
+
+function estimateTieChance(tier, sameSideOpponents) {
+  if (sameSideOpponents <= 0) return 0
+  const base = TIER_TIE_PROB[tier] ?? 0.04
+  const opponentFactor = clamp(0.8 + sameSideOpponents * 0.15, 0.8, 1.4)
+  return clamp(base * opponentFactor, 0, 0.35)
+}
+
+function applyTiebreakEquity(baseProb, tier, sameSideOpponents, edge) {
+  const tieChance = estimateTieChance(tier, sameSideOpponents)
+  const adjusted = baseProb + tieChance * edge * TIEBREAK_EQUITY_WEIGHT
+  return clamp(adjusted, 0.02, 0.97)
+}
+
 /**
  * Tiebreaker per §10:
  * - HIGH tie: compare highest-value number card; higher wins. Same value → suit (Gold > Silver > Bronze > Black)
@@ -83,24 +140,8 @@ function tiebreak(a, b, side) {
   const bNumbers = b.hand.filter((c) => c.type === 'number')
 
   if (side === 'HIGH') {
-    const aMax = aNumbers.reduce(
-      (best, c) =>
-        !best ||
-        c.value > best.value ||
-        (c.value === best.value && HIGH_SUIT_PRIORITY[c.suit] > HIGH_SUIT_PRIORITY[best.suit])
-          ? c
-          : best,
-      null,
-    )
-    const bMax = bNumbers.reduce(
-      (best, c) =>
-        !best ||
-        c.value > best.value ||
-        (c.value === best.value && HIGH_SUIT_PRIORITY[c.suit] > HIGH_SUIT_PRIORITY[best.suit])
-          ? c
-          : best,
-      null,
-    )
+    const aMax = getHighKeyCard(aNumbers)
+    const bMax = getHighKeyCard(bNumbers)
     if (aMax.value !== bMax.value) {
       const winner = aMax.value > bMax.value ? a : b
       const wCard = aMax.value > bMax.value ? aMax : bMax
@@ -110,24 +151,8 @@ function tiebreak(a, b, side) {
     const wCard = HIGH_SUIT_PRIORITY[aMax.suit] > HIGH_SUIT_PRIORITY[bMax.suit] ? aMax : bMax
     return { winner, explanation: `Tiebreaker: same value ${wCard.value}, suit ${wCard.suit} wins` }
   } else {
-    const aMin = aNumbers.reduce(
-      (best, c) =>
-        !best ||
-        c.value < best.value ||
-        (c.value === best.value && LOW_SUIT_PRIORITY[c.suit] > LOW_SUIT_PRIORITY[best.suit])
-          ? c
-          : best,
-      null,
-    )
-    const bMin = bNumbers.reduce(
-      (best, c) =>
-        !best ||
-        c.value < best.value ||
-        (c.value === best.value && LOW_SUIT_PRIORITY[c.suit] > LOW_SUIT_PRIORITY[best.suit])
-          ? c
-          : best,
-      null,
-    )
+    const aMin = getLowKeyCard(aNumbers)
+    const bMin = getLowKeyCard(bNumbers)
     if (aMin.value !== bMin.value) {
       const winner = aMin.value < bMin.value ? a : b
       const wCard = aMin.value < bMin.value ? aMin : bMin
@@ -656,14 +681,25 @@ export const useGameStore = defineStore('game', {
       // ── 3. Estimate same-side competition ──
       const activeOpponents = this.players.filter((p) => !p.folded && p.id !== ai.id).length
       const estPerSide = Math.max(1, Math.ceil(activeOpponents / 2))
+      const { lowEdge, highEdge } = getTiebreakEdges(numbers)
 
       // ── 4. Win probabilities ──
       const isRound1 = this.phase === 'ROUND_1'
       // Round 1: 4th card roughly quadruples permutation space (4! vs 3!)
       // Hands improve substantially — a "decent" 3-card hand often becomes "strong"
       const improvementBonus = isRound1 ? 0.15 : 0
-      const lowWinProb = Math.min(0.95, estimateWinProb(lowTier, estPerSide) + improvementBonus)
-      const highWinProb = Math.min(0.95, estimateWinProb(highTier, estPerSide) + improvementBonus)
+      const lowWinProb = applyTiebreakEquity(
+        Math.min(0.95, estimateWinProb(lowTier, estPerSide) + improvementBonus),
+        lowTier,
+        estPerSide,
+        lowEdge,
+      )
+      const highWinProb = applyTiebreakEquity(
+        Math.min(0.95, estimateWinProb(highTier, estPerSide) + improvementBonus),
+        highTier,
+        estPerSide,
+        highEdge,
+      )
 
       // ── 5. Expected value ──
       const currentTableBet = Math.max(...this.players.map((p) => p.currentBet))
@@ -934,9 +970,20 @@ export const useGameStore = defineStore('game', {
           // Estimate same-side opponents
           const activeOpponents = this.players.filter((p) => !p.folded && p.id !== ai.id).length
           const estPerSide = Math.max(1, Math.ceil(activeOpponents / 2))
+          const { lowEdge, highEdge } = getTiebreakEdges(nums)
 
-          const lowWinProb = estimateWinProb(lowTier, estPerSide)
-          const highWinProb = estimateWinProb(highTier, estPerSide)
+          const lowWinProb = applyTiebreakEquity(
+            estimateWinProb(lowTier, estPerSide),
+            lowTier,
+            estPerSide,
+            lowEdge,
+          )
+          const highWinProb = applyTiebreakEquity(
+            estimateWinProb(highTier, estPerSide),
+            highTier,
+            estPerSide,
+            highEdge,
+          )
 
           // EV comparison (no cost — declaration is free, just comparing payoff)
           let evLow = lowWinProb * (this.pot / 2)
