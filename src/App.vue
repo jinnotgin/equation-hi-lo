@@ -56,7 +56,7 @@
           <label class="text-sm font-bold text-slate-300 uppercase tracking-wide"
             >AI Opponents</label
           >
-          <div class="grid grid-cols-3 gap-2 w-full max-w-xs">
+          <div class="grid grid-cols-3 gap-2 w-full max-w-xs justify-items-center">
             <button
               v-for="n in [1, 2, 3]"
               :key="n"
@@ -74,7 +74,7 @@
           <p class="text-xs text-slate-500">{{ selectedAiCount + 1 }} players total</p>
 
           <label class="text-sm font-bold text-slate-300 uppercase tracking-wide">Rounds</label>
-          <div class="grid grid-cols-3 gap-2 w-full max-w-xs">
+          <div class="grid grid-cols-3 gap-2 w-full max-w-xs justify-items-center">
             <button
               v-for="r in [
                 { val: 5, label: '5' },
