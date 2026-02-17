@@ -170,8 +170,35 @@
         </div>
       </div>
 
-      <div class="h-16"></div>
-      <!-- Bottom padding spacer -->
+      <!-- Footer -->
+      <div class="mt-12 mb-8 text-center text-sm text-slate-400 font-mono tracking-wide">
+        <p class="mb-2">
+          Created by
+          <a
+            href="https://linjin.me"
+            target="_blank"
+            class="text-lime-400 hover:text-gold transition-colors underline decoration-slate-600 underline-offset-4"
+            >Jin</a
+          >
+          &copy; 2026
+        </p>
+        <p class="text-xs opacity-80 uppercase tracking-widest">
+          Built using Agentic Engineering -
+          <a
+            href="https://www.anthropic.com/news/claude-opus-4-6"
+            target="_blank"
+            class="hover:text-gold transition-colors border-b border-dotted border-slate-600 hover:border-gold"
+            >Claude 4.6 Opus</a
+          >
+          &amp;
+          <a
+            href="https://blog.google/products-and-platforms/products/gemini/gemini-3/"
+            target="_blank"
+            class="hover:text-gold transition-colors border-b border-dotted border-slate-600 hover:border-gold"
+            >Gemini 3 Pro</a
+          >
+        </p>
+      </div>
     </div>
 
     <!-- Main Table (Rounded Poker Table Shape) -->
