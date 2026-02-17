@@ -1,36 +1,38 @@
 <template>
   <div
-    class="min-h-screen bg-felt-green flex flex-col items-center py-8 px-4 font-sans text-slate-100"
+    class="min-h-screen bg-felt-green flex flex-col items-center py-4 sm:py-8 px-3 sm:px-4 font-sans text-slate-100"
   >
     <!-- Lobby Screen -->
-    <div v-if="gameStore.phase === 'LOBBY'" class="flex flex-col items-center gap-6 mt-6 px-4">
+    <div v-if="gameStore.phase === 'LOBBY'" class="flex flex-col items-center gap-4 sm:gap-6 mt-2 sm:mt-6 w-full px-0 sm:px-4">
       <!-- Top row: two-column layout -->
-      <div class="flex flex-col lg:flex-row gap-8 items-stretch max-w-5xl w-full">
+      <div class="flex flex-col lg:flex-row gap-4 sm:gap-8 items-stretch max-w-5xl w-full">
         <!-- Left: App Info / Branding -->
         <div
-          class="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl p-8 flex flex-col justify-center"
+          class="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl p-4 sm:p-8 flex flex-col justify-center"
         >
-          <h2 class="text-5xl font-bold text-gold tracking-widest mb-4">EQUATION<br />HI-LO ♠</h2>
-          <p class="text-slate-300 text-base italic leading-relaxed mb-4">
+          <h2 class="text-3xl sm:text-5xl font-bold text-gold tracking-widest mb-3 sm:mb-4">
+            EQUATION<br />HI-LO ♠
+          </h2>
+          <p class="text-slate-300 text-sm sm:text-base italic leading-relaxed mb-3 sm:mb-4">
             Inspired by "The Devil's Plan" (Netflix), created by Jung Jong-yeon
           </p>
-          <p class="text-slate-300 text-base leading-relaxed mb-4">
+          <p class="text-slate-300 text-sm sm:text-base leading-relaxed mb-3 sm:mb-4">
             A poker-style game where <strong class="text-white">math is your weapon</strong>.
             Combine your cards into an equation to hit the target number.
           </p>
-          <div class="flex gap-6 text-sm text-slate-400">
+          <div class="grid grid-cols-3 gap-3 sm:flex sm:gap-6 text-xs sm:text-sm text-slate-400">
             <div class="flex flex-col items-center gap-1">
-              <span class="text-2xl">🎯</span>
+              <span class="text-xl sm:text-2xl">🎯</span>
               <span class="text-blue-400 font-bold">LOW</span>
               <span>Target 1</span>
             </div>
             <div class="flex flex-col items-center gap-1">
-              <span class="text-2xl">🎯</span>
+              <span class="text-xl sm:text-2xl">🎯</span>
               <span class="text-red-400 font-bold">HIGH</span>
               <span>Target 20</span>
             </div>
             <div class="flex flex-col items-center gap-1">
-              <span class="text-2xl">⚡</span>
+              <span class="text-xl sm:text-2xl">⚡</span>
               <span class="text-amber-400 font-bold">SWING</span>
               <span>Win Both!</span>
             </div>
@@ -39,7 +41,7 @@
 
         <!-- Right: Game Controls -->
         <div
-          class="bg-felt-dark p-8 rounded-xl shadow-2xl flex flex-col items-center gap-5 w-full lg:w-80 shrink-0"
+          class="bg-felt-dark p-4 sm:p-8 rounded-xl shadow-2xl flex flex-col items-center gap-4 sm:gap-5 w-full lg:w-80 shrink-0"
         >
           <div class="w-full flex items-center justify-between">
             <h3 class="text-lg font-bold text-gold tracking-wider">New Game</h3>
@@ -54,15 +56,15 @@
           <label class="text-sm font-bold text-slate-300 uppercase tracking-wide"
             >AI Opponents</label
           >
-          <div class="flex gap-3">
+          <div class="grid grid-cols-3 gap-2 w-full max-w-xs">
             <button
               v-for="n in [1, 2, 3]"
               :key="n"
               @click="selectedAiCount = n"
-              class="w-14 h-14 rounded-lg text-xl font-bold transition-all duration-200 border-2"
+              class="w-full h-12 sm:w-14 sm:h-14 rounded-lg text-lg sm:text-xl font-bold transition-all duration-200 border-2"
               :class="
                 selectedAiCount === n
-                  ? 'bg-gold text-black border-gold scale-110 shadow-lg'
+                  ? 'bg-gold text-black border-gold sm:scale-110 shadow-lg'
                   : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-gold hover:text-gold'
               "
             >
@@ -72,7 +74,7 @@
           <p class="text-xs text-slate-500">{{ selectedAiCount + 1 }} players total</p>
 
           <label class="text-sm font-bold text-slate-300 uppercase tracking-wide">Rounds</label>
-          <div class="flex gap-3">
+          <div class="grid grid-cols-3 gap-2 w-full max-w-xs">
             <button
               v-for="r in [
                 { val: 5, label: '5' },
@@ -81,10 +83,10 @@
               ]"
               :key="r.val"
               @click="selectedRounds = r.val"
-              class="w-14 h-14 rounded-lg text-xl font-bold transition-all duration-200 border-2"
+              class="w-full h-12 sm:w-14 sm:h-14 rounded-lg text-lg sm:text-xl font-bold transition-all duration-200 border-2"
               :class="
                 selectedRounds === r.val
-                  ? 'bg-gold text-black border-gold scale-110 shadow-lg'
+                  ? 'bg-gold text-black border-gold sm:scale-110 shadow-lg'
                   : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-gold hover:text-gold'
               "
             >
@@ -122,7 +124,7 @@
             @click="
               gameStore.initGame(selectedAiCount, selectedRounds, gameStore.aiMistakesEnabled)
             "
-            class="bg-gold text-black font-bold px-10 py-3 rounded-lg hover:bg-yellow-400 text-lg tracking-wider shadow-lg transition-transform hover:scale-105 mt-2 w-full"
+            class="bg-gold text-black font-bold px-10 py-3 rounded-lg hover:bg-yellow-400 text-base sm:text-lg tracking-wider shadow-lg transition-transform hover:scale-105 mt-1.5 sm:mt-2 w-full min-h-12"
           >
             ▶ Start Game
           </button>
@@ -133,14 +135,14 @@
       <div class="max-w-5xl w-full">
         <button
           @click="toggleRules"
-          class="w-full text-center py-3 rounded-lg border border-slate-700 hover:border-gold bg-slate-900/40 hover:bg-slate-900/60 transition-all text-gold hover:text-yellow-300 text-sm font-bold uppercase tracking-wider"
+          class="w-full text-center py-2.5 sm:py-3 rounded-lg border border-slate-700 hover:border-gold bg-slate-900/40 hover:bg-slate-900/60 transition-all text-gold hover:text-yellow-300 text-xs sm:text-sm font-bold uppercase tracking-wider"
         >
           {{ showRules ? '▲ Hide How to Play' : '▼ How to Play' }}
         </button>
         <div
           v-if="showRules"
           ref="rulesSection"
-          class="bg-slate-900/80 border border-slate-700 border-t-0 rounded-b-xl p-6 text-sm text-slate-300 grid grid-cols-2 gap-x-8 gap-y-4"
+          class="bg-slate-900/80 border border-slate-700 border-t-0 rounded-b-xl p-4 sm:p-6 text-sm text-slate-300 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4"
         >
           <div>
             <h4 class="text-gold font-bold text-sm mb-1">🃏 Cards</h4>
@@ -175,9 +177,9 @@
               for High). <br /><strong>Rule:</strong> You must win BOTH sides to take the whole pot!
             </p>
           </div>
-          <div class="col-span-2 border-t border-slate-700 pt-3">
+          <div class="md:col-span-2 border-t border-slate-700 pt-3">
             <h4 class="text-gold font-bold text-sm mb-2">⭐ Important Rules</h4>
-            <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-slate-400">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs text-slate-400">
               <p>
                 &bull; <strong class="text-slate-300">Elimination:</strong> Run out of chips? You're
                 out. Last player standing wins.
@@ -205,7 +207,7 @@
 
       <!-- Footer -->
       <div
-        class="mt-12 mb-8 text-center text-base text-slate-400 font-mono tracking-wide font-semibold"
+        class="mt-8 sm:mt-12 mb-4 sm:mb-8 text-center text-sm sm:text-base text-slate-400 font-mono tracking-wide font-semibold"
       >
         <p class="mb-2">
           Created by
@@ -217,7 +219,7 @@
           >
           &copy; 2026 • v{{ displayVersion }}
         </p>
-        <p class="text-sm opacity-65 uppercase tracking-widest">
+        <p v-if="!isMobileLayout" class="text-sm opacity-65 uppercase tracking-widest">
           Built using Agentic Engineering •
           <a
             href="https://www.anthropic.com/news/claude-opus-4-6"
@@ -239,6 +241,9 @@
             class="hover:text-gold transition-colors border-b border-dotted border-slate-600 hover:border-gold"
             >Gemini 3 Pro</a
           >
+        </p>
+        <p v-else class="text-[11px] opacity-65 uppercase tracking-widest">
+          Built with Claude • GPT • Gemini
         </p>
       </div>
     </div>
@@ -308,23 +313,275 @@
 
     <!-- Main Table (Rounded Poker Table Shape) -->
     <template v-if="gameStore.phase !== 'LOBBY'">
-      <button
-        v-if="gameStore.phase !== 'GAME_OVER'"
-        @click="exitGame"
-        class="fixed top-5 right-5 z-[70] h-9 w-9 rounded-full border border-white/50 bg-black/70 text-white text-xl leading-none hover:bg-white/10 hover:border-white transition-colors flex items-center justify-center"
-        aria-label="Exit Game"
-        title="Exit Game"
-      >
-        <span class="relative -top-px">×</span>
-      </button>
+      <template v-if="isMobileLayout">
+        <div class="fixed inset-0 bg-felt-dark"></div>
 
-      <!-- Background Layer (The Felt & Border) -->
-      <div
-        class="fixed inset-4 sm:inset-8 bg-felt-dark border-[20px] border-slate-800 shadow-2xl rounded-[150px] md:rounded-[300px] lg:rounded-[400px] pointer-events-none"
-      ></div>
+        <Transition
+          enter-active-class="transition duration-500 ease-out"
+          enter-from-class="opacity-0 scale-90"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-300 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-110"
+        >
+          <div
+            v-if="gameStore.announcement && gameStore.announcement.visible"
+            class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-auto p-4"
+          >
+            <div class="flex flex-col items-center justify-center">
+              <div
+                class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-tight uppercase text-center"
+                style="-webkit-text-stroke: 1.5px black"
+              >
+                {{ gameStore.announcement.msg }}
+              </div>
+              <div
+                class="w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent mt-3 shadow-[0_0_12px_#ffd700]"
+              ></div>
+            </div>
+          </div>
+        </Transition>
 
-      <!-- Content Layer (UI Overlay - No Clipping) -->
-      <div class="fixed inset-4 sm:inset-8 flex items-center justify-center">
+        <div class="fixed inset-0 z-[40] flex flex-col">
+          <div
+            class="sticky top-0 z-20 border-b border-slate-700/80 bg-black/70 backdrop-blur px-3 pt-3 pb-2"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {{ phaseLabel }}
+                </p>
+                <p class="text-lg font-bold text-gold">Pot ${{ gameStore.pot }}</p>
+              </div>
+
+              <button
+                v-if="gameStore.phase !== 'GAME_OVER'"
+                @click="exitGame"
+                class="h-10 w-10 shrink-0 rounded-full border border-white/60 bg-black/70 text-white text-2xl leading-none hover:bg-white/10 transition-colors flex items-center justify-center"
+                aria-label="Exit Game"
+                title="Exit Game"
+              >
+                <span class="relative -top-px">×</span>
+              </button>
+            </div>
+
+            <div class="mt-2 flex items-center justify-between text-xs">
+              <span class="text-slate-400">Round {{ gameStore.roundNumber }}</span>
+              <span v-if="isAutoResolvingShowdown" class="text-gold uppercase tracking-wider font-bold"
+                >Finalising showdown...</span
+              >
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto px-3 py-3 pb-3">
+            <div class="rounded-xl border border-slate-700/80 bg-black/45 p-2.5">
+              <div class="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Opponents
+              </div>
+              <div class="space-y-2">
+                <div
+                  v-for="p in opponents"
+                  :key="p.id"
+                  class="rounded-lg border p-2 transition-all"
+                  :class="{
+                    'opacity-40 grayscale': p.folded || p.eliminated,
+                    'border-gold/70 bg-gold/10 shadow-[0_0_14px_rgba(255,215,0,0.12)]':
+                      gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg,
+                    'border-slate-600 bg-slate-900/70': !(gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg),
+                  }"
+                >
+                  <div class="flex items-center gap-2.5">
+                    <div
+                      class="relative w-9 h-9 rounded-full overflow-hidden border-2 bg-slate-800 shrink-0"
+                      :class="gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg ? 'border-gold' : 'border-slate-500'"
+                    >
+                      <img
+                        :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`"
+                        alt="AI"
+                        class="w-full h-full"
+                      />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-1.5">
+                        <div class="truncate text-sm font-bold text-white">{{ p.name }}</div>
+                        <Tooltip text="Dealer" v-if="gameStore.dealerIndex === p.id">
+                          <div
+                            class="bg-white text-black font-bold rounded-full w-4 h-4 flex items-center justify-center border border-slate-400 text-[10px] shadow-sm cursor-help"
+                          >
+                            D
+                          </div>
+                        </Tooltip>
+                        <span
+                          v-if="p.lastAction"
+                          class="px-1.5 py-0.5 rounded border border-slate-500 text-[9px] text-slate-300 font-semibold uppercase tracking-wide"
+                        >
+                          {{ p.lastAction }}
+                        </span>
+                        <span
+                          v-if="p.eliminated || p.folded"
+                          class="px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wide"
+                          :class="
+                            p.eliminated
+                              ? 'text-slate-400 border-slate-600'
+                              : 'text-rose-300 border-rose-500/60'
+                          "
+                        >
+                          {{ p.eliminated ? 'Out' : 'Folded' }}
+                        </span>
+                      </div>
+                      <div class="mt-0.5 flex items-center justify-between gap-2">
+                        <div class="text-sm font-mono text-gold">${{ p.chips }}</div>
+                        <div
+                          v-if="p.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
+                          class="text-base font-bold text-amber-300 pr-1"
+                        >
+                          Bet ${{ p.currentBet }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-2 overflow-x-auto">
+                    <div class="flex items-center gap-1.5 min-w-max">
+                      <Card
+                        v-for="(c, i) in p.hand"
+                        :key="c.id || i"
+                        :card="c"
+                        :isFaceDown="c.faceDown"
+                        :compact="true"
+                        class="shrink-0"
+                      />
+                      <div
+                        v-for="(op, oi) in p.ops"
+                        :key="oi"
+                        class="w-7 h-9 rounded-md text-sm font-bold flex items-center justify-center border-2 shrink-0"
+                        :class="opStyle(op)"
+                      >
+                        {{ op }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="sticky bottom-0 border-t border-slate-700/80 bg-black/80 backdrop-blur px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.8rem)]"
+          >
+            <div
+              class="rounded-xl border p-2.5"
+              :class="{
+                'opacity-50 grayscale': me.folded,
+                'border-gold/70 bg-gold/10': isMyTurn && !gameStore.winnerMsg,
+                'border-slate-700 bg-slate-900/60': !(isMyTurn && !gameStore.winnerMsg),
+              }"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="truncate text-base font-bold text-white">{{ me.name }}</span>
+                  <Tooltip text="Dealer" v-if="gameStore.dealerIndex === me.id">
+                    <span
+                      class="bg-white text-black font-bold rounded-full w-5 h-5 flex items-center justify-center border border-slate-400 text-[10px] shadow-sm cursor-help"
+                      >D</span
+                    >
+                  </Tooltip>
+                </div>
+                <span class="text-gold font-mono text-lg font-bold shrink-0">${{ me.chips }}</span>
+              </div>
+
+              <div
+                v-if="me.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
+                class="mt-1.5 text-[11px] font-bold text-amber-300"
+              >
+                Your bet: ${{ me.currentBet }}
+              </div>
+
+              <div class="mt-2 overflow-x-auto">
+                <div class="flex items-center gap-2 min-w-max">
+                  <TransitionGroup name="deal-card" tag="div" class="flex gap-2">
+                    <Card
+                      v-for="(c, i) in sortedHand"
+                      :key="c.id"
+                      :card="c"
+                      :isFaceDown="false"
+                      :compact="true"
+                      class="shadow-xl"
+                      :style="{ 'z-index': i }"
+                    />
+                  </TransitionGroup>
+
+                  <div
+                    v-for="(op, i) in me.ops"
+                    :key="i"
+                    class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg shadow-md border-2"
+                    :class="opStyle(op)"
+                  >
+                    {{ op }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-if="isMyTurn && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
+                class="mt-3 grid grid-cols-2 gap-2"
+              >
+                <div v-if="canRaise" class="col-span-2 grid grid-cols-[44px_1fr_44px] gap-2 items-center">
+                  <button
+                    @click="adjustRaise(-10)"
+                    class="h-11 rounded-lg bg-slate-700 hover:bg-slate-600 text-lg font-bold border border-slate-500"
+                  >
+                    −
+                  </button>
+                  <button
+                    @click="action('raise')"
+                    class="h-11 bg-gold text-black hover:bg-yellow-400 px-4 rounded-lg font-bold uppercase tracking-wider border border-yellow-600 text-sm"
+                  >
+                    Raise ${{ raiseAmount }}
+                  </button>
+                  <button
+                    @click="adjustRaise(10)"
+                    class="h-11 rounded-lg bg-slate-700 hover:bg-slate-600 text-lg font-bold border border-slate-500"
+                  >
+                    +
+                  </button>
+                </div>
+                <button
+                  @click="action('fold')"
+                  class="min-h-11 bg-red-900 hover:bg-red-700 px-4 py-2.5 rounded-lg font-bold uppercase tracking-wider border border-red-500 text-sm"
+                >
+                  Fold
+                </button>
+                <button
+                  @click="action('call')"
+                  class="min-h-11 bg-slate-600 hover:bg-slate-500 px-4 py-2.5 rounded-lg font-bold uppercase tracking-wider border border-slate-400 text-sm"
+                >
+                  {{ toCall === 0 ? 'Check' : `Call $${toCall}` }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template v-else>
+        <button
+          v-if="gameStore.phase !== 'GAME_OVER'"
+          @click="exitGame"
+          class="fixed top-5 right-5 z-[70] h-9 w-9 rounded-full border border-white/50 bg-black/70 text-white text-xl leading-none hover:bg-white/10 hover:border-white transition-colors flex items-center justify-center"
+          aria-label="Exit Game"
+          title="Exit Game"
+        >
+          <span class="relative -top-px">×</span>
+        </button>
+
+        <!-- Background Layer (The Felt & Border) -->
+        <div
+          class="fixed inset-4 sm:inset-8 bg-felt-dark border-[20px] border-slate-800 shadow-2xl rounded-[150px] md:rounded-[300px] lg:rounded-[400px] pointer-events-none"
+        ></div>
+
+        <!-- Content Layer (UI Overlay - No Clipping) -->
+        <div class="fixed inset-4 sm:inset-8 flex items-center justify-center">
         <!-- Central Announcement Overlay -->
         <Transition
           enter-active-class="transition duration-500 ease-out"
@@ -619,48 +876,62 @@
         </div>
       </div>
     </template>
+    </template>
 
     <!-- Showdown / Round End Overlay -->
     <div
       v-if="gameStore.winnerMsg"
-      class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 overflow-y-auto"
+      class="fixed inset-0 bg-black/80 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      :class="isMobileLayout ? 'pb-24' : ''"
     >
-      <div class="flex flex-col items-center gap-6 w-full max-w-6xl">
+      <div class="flex flex-col items-center w-full max-w-6xl" :class="isMobileLayout ? 'gap-4' : 'gap-6'">
         <!-- Showdown Results Panel -->
         <div
           v-if="gameStore.showdownResults"
-          class="bg-black/95 text-white p-6 rounded-xl border-2 border-gold shadow-2xl w-full"
+          class="bg-black/95 text-white rounded-xl border-2 border-gold shadow-2xl w-full"
+          :class="isMobileLayout ? 'p-3' : 'p-4 sm:p-6'"
         >
-          <h3 class="text-gold text-xl font-bold mb-4 tracking-wider text-center">
+          <h3
+            class="text-gold font-bold tracking-wider text-center"
+            :class="isMobileLayout ? 'text-base mb-2.5' : 'text-lg sm:text-xl mb-4'"
+          >
             🏆 SHOWDOWN RESULTS
           </h3>
           <!-- 2x2 Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2" :class="isMobileLayout ? 'gap-2.5' : 'gap-4'">
             <div
               v-for="(r, i) in gameStore.showdownResults"
               :key="i"
-              class="bg-slate-800/80 rounded-lg px-4 py-3 border"
-              :class="r.isLowWinner || r.isHighWinner ? 'border-gold' : 'border-slate-700'"
+              class="bg-slate-800/80 rounded-lg border"
+              :class="[
+                isMobileLayout ? 'px-2.5 py-2' : 'px-4 py-3',
+                r.isLowWinner || r.isHighWinner ? 'border-gold' : 'border-slate-700',
+              ]"
             >
               <!-- Name + badges row -->
-              <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center justify-between mb-1.5">
                 <div
-                  class="font-bold text-sm"
-                  :class="r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-300'"
+                  class="font-bold"
+                  :class="[
+                    isMobileLayout ? 'text-xs' : 'text-sm',
+                    r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-300',
+                  ]"
                 >
                   {{ r.name }}
                   <span
                     v-if="r.isLowWinner"
-                    class="ml-1 text-[10px] bg-blue-600 px-1.5 py-0.5 rounded text-white"
+                    class="ml-1 bg-blue-600 px-1.5 py-0.5 rounded text-white"
+                    :class="isMobileLayout ? 'text-[9px]' : 'text-[10px]'"
                     >LOW 🏆</span
                   >
                   <span
                     v-if="r.isHighWinner"
-                    class="ml-1 text-[10px] bg-red-600 px-1.5 py-0.5 rounded text-white"
+                    class="ml-1 bg-red-600 px-1.5 py-0.5 rounded text-white"
+                    :class="isMobileLayout ? 'text-[9px]' : 'text-[10px]'"
                     >HIGH 🏆</span
                   >
                 </div>
-                <span class="text-[10px] text-slate-400 uppercase tracking-wide">{{
+                <span class="text-slate-400 uppercase tracking-wide" :class="isMobileLayout ? 'text-[9px]' : 'text-[10px]'">{{
                   r.declaration
                 }}</span>
               </div>
@@ -668,25 +939,34 @@
               <!-- SWING: two equation blocks -->
               <template v-if="r.declaration === 'SWING'">
                 <!-- LOW equation -->
-                <div class="mb-2">
-                  <div class="text-[10px] text-blue-400 font-bold uppercase mb-1">
+                <div class="mb-1.5">
+                  <div class="text-blue-400 font-bold uppercase mb-1" :class="isMobileLayout ? 'text-[9px]' : 'text-[10px]'">
                     Low → Target 1
                   </div>
-                  <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                  <div
+                    :class="
+                      isMobileLayout
+                        ? 'flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-1 mb-1'
+                        : 'flex items-center gap-1.5 flex-wrap mb-1'
+                    "
+                  >
                     <template
                       v-for="(item, j) in interleaveEquation(r.hand, r.ops, r.lowEqStr)"
                       :key="'l' + j"
                     >
                       <div
                         v-if="item.kind === 'card'"
-                        class="w-8 h-12 rounded border-2 bg-slate-100 flex flex-col items-center justify-center text-[10px] font-bold shadow-sm"
-                        :class="{
-                          'border-yellow-500': item.suit === 'gold',
-                          'border-gray-400': item.suit === 'silver',
-                          'border-orange-600': item.suit === 'bronze',
-                          'border-slate-400': item.suit === 'black',
-                          'border-purple-400': item.type === 'sqrt',
-                        }"
+                        class="rounded border-2 bg-slate-100 flex flex-col items-center justify-center font-bold shadow-sm shrink-0"
+                        :class="[
+                          isMobileLayout ? 'w-7 h-10 text-[9px]' : 'w-8 h-12 text-[10px]',
+                          {
+                            'border-yellow-500': item.suit === 'gold',
+                            'border-gray-400': item.suit === 'silver',
+                            'border-orange-600': item.suit === 'bronze',
+                            'border-slate-400': item.suit === 'black',
+                            'border-purple-400': item.type === 'sqrt',
+                          },
+                        ]"
                       >
                         <span
                           :class="{
@@ -701,51 +981,61 @@
                       </div>
                       <div
                         v-else
-                        class="w-6 h-12 rounded flex items-center justify-center text-xs font-bold shadow-sm"
-                        :class="opColorMini(item.value)"
+                        class="rounded flex items-center justify-center font-bold shadow-sm shrink-0"
+                        :class="[isMobileLayout ? 'w-5 h-10 text-[10px]' : 'w-6 h-12 text-xs', opColorMini(item.value)]"
                       >
                         {{ item.value }}
                       </div>
                     </template>
                   </div>
                   <div class="flex items-baseline gap-2">
-                    <span class="font-mono font-bold text-sm text-blue-300"
+                    <span class="font-mono font-bold text-blue-300" :class="isMobileLayout ? 'text-xs' : 'text-sm'"
                       >= {{ r.lowResult != null ? r.lowResult.toFixed(2) : '?' }}</span
                     >
                     <span
                       v-if="r.lowDiff != null"
-                      class="text-[10px] font-mono"
-                      :class="
+                      class="font-mono"
+                      :class="[
+                        isMobileLayout ? 'text-[9px]' : 'text-[10px]',
                         r.lowDiff === 0
                           ? 'text-green-400'
                           : r.lowDiff < 1
                             ? 'text-yellow-400'
-                            : 'text-slate-500'
-                      "
+                            : 'text-slate-500',
+                      ]"
                       >(Δ1: {{ r.lowDiff.toFixed(2) }})</span
                     >
                   </div>
                 </div>
                 <!-- HIGH equation -->
                 <div>
-                  <div class="text-[10px] text-red-400 font-bold uppercase mb-1">
+                  <div class="text-red-400 font-bold uppercase mb-1" :class="isMobileLayout ? 'text-[9px]' : 'text-[10px]'">
                     High → Target 20
                   </div>
-                  <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                  <div
+                    :class="
+                      isMobileLayout
+                        ? 'flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-1 mb-1'
+                        : 'flex items-center gap-1.5 flex-wrap mb-1'
+                    "
+                  >
                     <template
                       v-for="(item, j) in interleaveEquation(r.hand, r.ops, r.highEqStr)"
                       :key="'h' + j"
                     >
                       <div
                         v-if="item.kind === 'card'"
-                        class="w-8 h-12 rounded border-2 bg-slate-100 flex flex-col items-center justify-center text-[10px] font-bold shadow-sm"
-                        :class="{
-                          'border-yellow-500': item.suit === 'gold',
-                          'border-gray-400': item.suit === 'silver',
-                          'border-orange-600': item.suit === 'bronze',
-                          'border-slate-400': item.suit === 'black',
-                          'border-purple-400': item.type === 'sqrt',
-                        }"
+                        class="rounded border-2 bg-slate-100 flex flex-col items-center justify-center font-bold shadow-sm shrink-0"
+                        :class="[
+                          isMobileLayout ? 'w-7 h-10 text-[9px]' : 'w-8 h-12 text-[10px]',
+                          {
+                            'border-yellow-500': item.suit === 'gold',
+                            'border-gray-400': item.suit === 'silver',
+                            'border-orange-600': item.suit === 'bronze',
+                            'border-slate-400': item.suit === 'black',
+                            'border-purple-400': item.type === 'sqrt',
+                          },
+                        ]"
                       >
                         <span
                           :class="{
@@ -760,27 +1050,28 @@
                       </div>
                       <div
                         v-else
-                        class="w-6 h-12 rounded flex items-center justify-center text-xs font-bold shadow-sm"
-                        :class="opColorMini(item.value)"
+                        class="rounded flex items-center justify-center font-bold shadow-sm shrink-0"
+                        :class="[isMobileLayout ? 'w-5 h-10 text-[10px]' : 'w-6 h-12 text-xs', opColorMini(item.value)]"
                       >
                         {{ item.value }}
                       </div>
                     </template>
                   </div>
                   <div class="flex items-baseline gap-2">
-                    <span class="font-mono font-bold text-sm text-red-300"
+                    <span class="font-mono font-bold text-red-300" :class="isMobileLayout ? 'text-xs' : 'text-sm'"
                       >= {{ r.highResult != null ? r.highResult.toFixed(2) : '?' }}</span
                     >
                     <span
                       v-if="r.highDiff != null"
-                      class="text-[10px] font-mono"
-                      :class="
+                      class="font-mono"
+                      :class="[
+                        isMobileLayout ? 'text-[9px]' : 'text-[10px]',
                         r.highDiff === 0
                           ? 'text-green-400'
                           : r.highDiff < 1
                             ? 'text-yellow-400'
-                            : 'text-slate-500'
-                      "
+                            : 'text-slate-500',
+                      ]"
                       >(Δ20: {{ r.highDiff.toFixed(2) }})</span
                     >
                   </div>
@@ -789,21 +1080,30 @@
 
               <!-- Normal (non-swing) equation -->
               <template v-else>
-                <div class="flex items-center gap-1.5 flex-wrap mb-3">
+                <div
+                  :class="
+                    isMobileLayout
+                      ? 'flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-1 mb-2'
+                      : 'flex items-center gap-1.5 flex-wrap mb-3'
+                  "
+                >
                   <template
                     v-for="(item, j) in interleaveEquation(r.hand, r.ops, r.equation)"
                     :key="j"
                   >
                     <div
                       v-if="item.kind === 'card'"
-                      class="w-10 h-14 rounded-lg border-2 bg-slate-100 flex flex-col items-center justify-center text-xs font-bold shadow-sm"
-                      :class="{
-                        'border-yellow-500': item.suit === 'gold',
-                        'border-gray-400': item.suit === 'silver',
-                        'border-orange-600': item.suit === 'bronze',
-                        'border-slate-400': item.suit === 'black',
-                        'border-purple-400': item.type === 'sqrt',
-                      }"
+                      class="rounded-lg border-2 bg-slate-100 flex flex-col items-center justify-center font-bold shadow-sm shrink-0"
+                      :class="[
+                        isMobileLayout ? 'w-8 h-11 text-[10px]' : 'w-10 h-14 text-xs',
+                        {
+                          'border-yellow-500': item.suit === 'gold',
+                          'border-gray-400': item.suit === 'silver',
+                          'border-orange-600': item.suit === 'bronze',
+                          'border-slate-400': item.suit === 'black',
+                          'border-purple-400': item.type === 'sqrt',
+                        },
+                      ]"
                     >
                       <span
                         :class="{
@@ -817,7 +1117,7 @@
                       >
                       <span
                         v-if="item.suit"
-                        class="text-[7px] uppercase font-semibold opacity-70"
+                        class="uppercase font-semibold opacity-70 hidden sm:block text-[7px]"
                         :class="{
                           'text-yellow-600': item.suit === 'gold',
                           'text-gray-500': item.suit === 'silver',
@@ -830,8 +1130,8 @@
                     </div>
                     <div
                       v-else
-                      class="w-8 h-14 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm"
-                      :class="opColorMini(item.value)"
+                      class="rounded-lg flex items-center justify-center font-bold shadow-sm shrink-0"
+                      :class="[isMobileLayout ? 'w-6 h-11 text-xs' : 'w-8 h-14 text-sm', opColorMini(item.value)]"
                     >
                       {{ item.value }}
                     </div>
@@ -839,21 +1139,25 @@
                 </div>
                 <div class="flex items-baseline gap-2">
                   <span
-                    class="font-mono font-bold text-lg"
-                    :class="r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-200'"
+                    class="font-mono font-bold"
+                    :class="[
+                      isMobileLayout ? 'text-base' : 'text-lg',
+                      r.isLowWinner || r.isHighWinner ? 'text-gold' : 'text-slate-200',
+                    ]"
                   >
                     = {{ typeof r.result === 'number' ? r.result.toFixed(2) : r.result }}
                   </span>
                   <span
                     v-if="r.diff != null"
-                    class="text-sm font-mono"
-                    :class="
+                    class="font-mono"
+                    :class="[
+                      isMobileLayout ? 'text-xs' : 'text-sm',
                       r.diff === 0
                         ? 'text-green-400'
                         : r.diff < 1
                           ? 'text-yellow-400'
-                          : 'text-slate-500'
-                    "
+                          : 'text-slate-500',
+                    ]"
                   >
                     ({{ r.declaration === 'LOW' ? 'Δ1' : 'Δ20' }}: {{ r.diff.toFixed(2) }})
                   </span>
@@ -865,24 +1169,26 @@
           <!-- Tiebreaker explanation -->
           <div
             v-if="gameStore.lowTiebreakExplanation || gameStore.highTiebreakExplanation"
-            class="mt-3 p-2.5 bg-amber-900/30 border border-amber-700/50 rounded-lg"
+            class="mt-2.5 p-2.5 bg-amber-900/30 border border-amber-700/50 rounded-lg"
           >
-            <div class="text-amber-300 text-base font-semibold mb-1">⚖️ Tie Detected</div>
+            <div class="text-amber-300 font-semibold mb-1" :class="isMobileLayout ? 'text-sm' : 'text-base'">⚖️ Tie Detected</div>
             <div
               v-if="gameStore.lowTiebreakExplanation"
-              class="text-amber-200/80 text-sm font-mono"
+              class="text-amber-200/80 font-mono"
+              :class="isMobileLayout ? 'text-xs' : 'text-sm'"
             >
               LOW: {{ lowTiebreakDisplay }}
             </div>
             <div
               v-if="gameStore.highTiebreakExplanation"
-              class="text-amber-200/80 text-sm font-mono"
+              class="text-amber-200/80 font-mono"
+              :class="isMobileLayout ? 'text-xs' : 'text-sm'"
             >
               HIGH: {{ highTiebreakDisplay }}
             </div>
           </div>
           <!-- Winner message -->
-          <div class="mt-3 text-center text-large font-semibold text-slate-300">
+          <div class="mt-2.5 text-center font-semibold text-slate-300" :class="isMobileLayout ? 'text-base' : 'text-large'">
             {{ gameStore.winnerMsg }}
           </div>
         </div>
@@ -891,7 +1197,7 @@
         <!-- Round Over (Fold Win) Card -->
         <div
           v-if="gameStore.phase === 'END' && !gameStore.showdownResults"
-          class="bg-black/90 text-white p-8 rounded-xl border-2 border-gold shadow-2xl max-w-md text-center flex flex-col items-center gap-4"
+          class="bg-black/90 text-white p-5 sm:p-8 rounded-xl border-2 border-gold shadow-2xl max-w-md text-center flex flex-col items-center gap-4"
         >
           <h3 class="text-gold text-2xl font-bold tracking-wider uppercase">Round Over</h3>
           <p class="text-lg text-slate-200 font-medium">{{ gameStore.winnerMsg }}</p>
@@ -906,9 +1212,9 @@
         <!-- Game Over Card with Leaderboard -->
         <div
           v-if="gameStore.phase === 'GAME_OVER'"
-          class="bg-black/95 text-white p-8 rounded-xl border-2 border-gold shadow-2xl w-full max-w-lg flex flex-col items-center gap-6"
+          class="bg-black/95 text-white p-5 sm:p-8 rounded-xl border-2 border-gold shadow-2xl w-full max-w-lg flex flex-col items-center gap-6"
         >
-          <h3 class="text-gold text-4xl font-black tracking-widest uppercase drop-shadow-md">
+          <h3 class="text-gold text-3xl sm:text-4xl font-black tracking-widest uppercase drop-shadow-md text-center">
             🏆 Game Over 🏆
           </h3>
 
@@ -933,7 +1239,7 @@
 
           <!-- Leaderboard -->
           <div class="w-full bg-slate-900/80 rounded-lg border border-slate-700 overflow-hidden">
-            <table class="w-full text-left text-sm">
+            <table class="w-full text-left text-xs sm:text-sm">
               <thead class="bg-slate-800 text-slate-400 uppercase text-xs">
                 <tr>
                   <th class="px-4 py-2 text-center">#</th>
@@ -974,17 +1280,21 @@
 
           <button
             @click="gameStore.resetToLobby()"
-            class="bg-gold text-black font-bold px-10 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105 mt-2"
+            class="bg-gold text-black font-bold px-10 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-lg sm:text-xl transition-transform hover:scale-105 mt-2"
           >
             Back to Lobby ⟳
           </button>
         </div>
 
         <!-- Next Round Button (For Showdown results view - at bottom) -->
-        <div v-if="gameStore.phase === 'END' && gameStore.showdownResults" class="mt-4">
+        <div
+          v-if="gameStore.phase === 'END' && gameStore.showdownResults"
+          :class="isMobileLayout ? 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[65] w-[calc(100%-1.5rem)] max-w-md' : 'mt-4'"
+        >
           <button
             @click="gameStore.completeRoundAndStartNext()"
-            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
+            class="bg-gold text-black font-bold rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] transition-transform hover:scale-105"
+            :class="isMobileLayout ? 'w-full px-6 py-3.5 text-lg' : 'px-8 py-3 text-xl'"
           >
             Start Next Round ▶
           </button>
@@ -998,26 +1308,41 @@
       <!-- Full Builder UI -->
       <div
         v-if="!isBuilderMinimized"
-        class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+        class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
       >
-        <div class="relative w-full max-w-4xl">
+        <button
+          v-if="isMobileLayout"
+          @click="isBuilderMinimized = true"
+          class="fixed top-3 right-3 z-[75] bg-slate-900/95 text-slate-100 border border-gold/70 rounded-full px-3.5 py-2 text-xs font-bold uppercase tracking-wider shadow-[0_0_12px_rgba(255,215,0,0.2)]"
+        >
+          Minimise
+        </button>
+
+        <div class="relative w-full max-w-4xl my-auto">
           <!-- Minimize Button -->
           <button
+            v-if="!isMobileLayout"
             @click="isBuilderMinimized = true"
-            class="absolute -top-12 right-0 text-slate-200 hover:text-white flex items-center gap-2 bg-slate-900/90 px-5 py-2 rounded-full border border-slate-600 hover:border-gold transition-all shadow-lg"
+            class="text-slate-200 hover:text-white flex items-center gap-2 bg-slate-900/90 rounded-full border border-slate-600 hover:border-gold transition-all shadow-lg"
+            :class="'absolute -top-12 right-0 px-5 py-2'"
           >
             <span class="text-sm font-bold">Minimise</span>
           </button>
 
-          <EquationBoard />
+          <EquationBoard :mobile="isMobileLayout" />
         </div>
       </div>
 
       <!-- Minimized Floating Button -->
-      <div v-else class="fixed bottom-8 right-8 z-[60]">
+      <div
+        v-else
+        class="fixed z-[60]"
+        :class="isMobileLayout ? 'bottom-4 right-4' : 'bottom-8 right-8'"
+      >
         <button
           @click="isBuilderMinimized = false"
-          class="bg-gold text-black font-bold px-6 py-4 rounded-full shadow-[0_0_20px_rgba(255,215,0,0.6)] text-xl flex items-center gap-2 animate-bounce-slight hover:scale-105 transition-transform border-4 border-black"
+          class="bg-gold text-black font-bold rounded-full shadow-[0_0_20px_rgba(255,215,0,0.6)] flex items-center gap-2 animate-bounce-slight hover:scale-105 transition-transform border-4 border-black"
+          :class="isMobileLayout ? 'px-4 py-3 text-base' : 'px-6 py-4 text-xl'"
         >
           <span>📝 Open Equation Builder</span>
         </button>
@@ -1027,10 +1352,10 @@
     <!-- Discard Operator Modal -->
     <div
       v-if="gameStore.pendingDiscard"
-      class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center"
+      class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-3 sm:p-4"
     >
       <div
-        class="bg-slate-800 p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6"
+        class="w-full max-w-xl max-h-[90dvh] overflow-y-auto bg-slate-800 p-5 sm:p-8 rounded-xl border-2 border-gold shadow-2xl flex flex-col items-center gap-6"
       >
         <h3 class="text-gold text-xl font-bold tracking-wider">× Card Drawn!</h3>
 
@@ -1041,16 +1366,16 @@
         </div>
 
         <!-- Show Current Hand + Ops for Context -->
-        <div class="flex items-center gap-4 justify-center mb-2">
+        <div class="w-full flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center mb-2">
           <!-- Cards -->
-          <div class="flex -space-x-2 perspective-1000">
+          <div class="flex -space-x-2 perspective-1000 overflow-x-auto max-w-full py-1">
             <div
               v-for="(c, i) in sortedHand"
               :key="c.id"
               class="transform hover:-translate-y-2 transition-transform"
               :style="{ 'z-index': i }"
             >
-              <Card :card="c" :isFaceDown="false" class="shadow-xl" />
+              <Card :card="c" :isFaceDown="false" :compact="isMobileLayout" class="shadow-xl" />
             </div>
           </div>
           <!-- Operators -->
@@ -1058,8 +1383,8 @@
             <div
               v-for="(op, i) in me.ops"
               :key="i"
-              class="w-12 h-16 rounded flex items-center justify-center text-xl font-bold border shadow-md"
-              :class="opStyle(op)"
+              class="rounded flex items-center justify-center text-xl font-bold border shadow-md"
+              :class="[isMobileLayout ? 'w-10 h-12' : 'w-12 h-16', opStyle(op)]"
             >
               {{ op }}
             </div>
@@ -1072,16 +1397,16 @@
             <span class="font-bold underline text-white">discard</span> from your hand:
           </p>
 
-          <div class="flex gap-6 justify-center">
+          <div class="flex gap-3 sm:gap-6 justify-center">
             <button
               @click="gameStore.resolveDiscard('+')"
-              class="w-20 h-20 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-3xl font-bold border-2 border-emerald-400 shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
+              class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-3xl font-bold border-2 border-emerald-400 shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
             >
               +
             </button>
             <button
               @click="gameStore.resolveDiscard('-')"
-              class="w-20 h-20 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-3xl font-bold border-2 border-rose-400 shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
+              class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-3xl font-bold border-2 border-rose-400 shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
             >
               −
             </button>
@@ -1093,7 +1418,7 @@
 
     <!-- HUD Container (Message + Action Log) -->
     <div
-      v-if="gameStore.phase !== 'LOBBY'"
+      v-if="gameStore.phase !== 'LOBBY' && !isMobileLayout"
       class="fixed bottom-4 left-4 z-50 flex flex-col-reverse items-start gap-1.5 pointer-events-none"
     >
       <ActionLog />
@@ -1110,7 +1435,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useGameStore, AI_NAMES } from './stores/game'
 import Card from './components/Card.vue'
 import EquationBoard from './components/EquationBoard.vue'
@@ -1126,6 +1451,13 @@ const showRules = ref(false)
 const showSettingsDialog = ref(false)
 const rulesSection = ref(null)
 const isBuilderMinimized = ref(false)
+const MOBILE_BREAKPOINT = 768
+const isMobileLayout = ref(false)
+
+const updateLayoutMode = () => {
+  if (typeof window === 'undefined') return
+  isMobileLayout.value = window.innerWidth < MOBILE_BREAKPOINT
+}
 
 const toggleRules = async () => {
   showRules.value = !showRules.value
@@ -1293,8 +1625,18 @@ watch(
   },
 )
 
+watch(isMobileLayout, (mobile) => {
+  if (mobile) {
+    isBuilderMinimized.value = false
+  }
+})
+
 onMounted(() => {
   gameStore.loadSettings()
+  updateLayoutMode()
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', updateLayoutMode)
+  }
 
   // Preload all possible avatars for a smooth experience
   const avatarsToPreload = ['You', ...AI_NAMES]
@@ -1302,6 +1644,12 @@ onMounted(() => {
     const img = new Image()
     img.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${name}`
   })
+})
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', updateLayoutMode)
+  }
 })
 
 // Parse equationStr to display cards in correct equation order, matching to hand for suit info

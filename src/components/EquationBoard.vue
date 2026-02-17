@@ -1,73 +1,93 @@
 <template>
   <div
-    class="w-full max-w-4xl mx-auto mt-4 rounded-xl border border-slate-700 bg-slate-900/90 p-5 shadow-2xl backdrop-blur-sm"
+    class="w-full mx-auto rounded-xl border border-slate-700 bg-slate-900/90 shadow-2xl backdrop-blur-sm"
+    :class="mobile ? 'max-w-5xl p-3 sm:p-4' : 'max-w-4xl mt-4 p-5'"
   >
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-gold text-xl font-bold tracking-wider uppercase">Build Your Equation</h2>
+    <div class="flex items-center justify-between mb-3" :class="mobile ? 'gap-2' : ''">
+      <h2
+        class="text-gold font-bold tracking-wider uppercase"
+        :class="mobile ? 'text-base' : 'text-xl'"
+      >
+        Build Your Equation
+      </h2>
       <button
         v-if="hasAnySlotFilled"
         @click="resetSlots()"
-        class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 hover:bg-rose-900/80 text-slate-300 hover:text-rose-100 border border-slate-600 hover:border-rose-500 transition-all"
+        class="flex items-center gap-1.5 rounded-full font-bold uppercase tracking-wider bg-slate-800 hover:bg-rose-900/80 text-slate-300 hover:text-rose-100 border border-slate-600 hover:border-rose-500 transition-all"
+        :class="mobile ? 'px-3 py-2 text-[11px]' : 'px-3 py-1 text-xs'"
       >
         <span class="text-sm">✕</span> Clear All
       </button>
     </div>
 
-    <!-- Drop Zone -->
     <div class="mb-2 flex items-center justify-between px-1">
       <p class="text-emerald-200 text-xs font-bold uppercase tracking-[0.16em]">
-        Drop Equation Here
+        {{ mobile ? 'Tap cards to fill equation' : 'Drop Equation Here' }}
+      </p>
+      <p
+        v-if="mobile && selectedItem"
+        class="text-[10px] uppercase tracking-wide text-gold font-bold text-right"
+      >
+        {{ selectedItemHint }}
       </p>
     </div>
+
     <div
-      class="flex items-center gap-2 p-4 bg-felt-dark/70 border-2 border-emerald-800/70 rounded-xl min-h-[120px] justify-center flex-wrap shadow-[inset_0_0_0_1px_rgba(16,185,129,0.25)]"
+      class="p-3 bg-felt-dark/70 border-2 border-emerald-800/70 rounded-xl shadow-[inset_0_0_0_1px_rgba(16,185,129,0.25)]"
+      :class="mobile ? 'overflow-x-auto min-h-[88px]' : 'min-h-[120px]'"
     >
-      <div
-        v-for="(slot, index) in slots"
-        :key="index"
-        class="w-16 h-24 border-2 border-dashed border-slate-400 rounded-lg flex items-center justify-center relative bg-slate-800/80 group transition-colors hover:border-gold/60"
-        @dragover.prevent
-        @drop="onDrop($event, index)"
-      >
-        <span v-if="!slot.item" class="text-slate-500 text-xs font-medium"
-          >Slot {{ index + 1 }}</span
-        >
-
-        <!-- Operator in slot -->
+      <div :class="mobile ? 'flex gap-2 min-w-max' : 'flex items-center gap-2 justify-center flex-wrap'">
         <div
-          v-else-if="slot.item.type === 'op'"
-          class="w-16 h-24 rounded flex items-center justify-center cursor-move text-2xl font-bold border-2 relative"
-          :class="opColor(slot.item.value)"
-          draggable="true"
-          @dragstart="onDragStart($event, index, 'board')"
+          v-for="(slot, index) in slots"
+          :key="index"
+          class="border-2 border-dashed rounded-lg flex items-center justify-center relative bg-slate-800/80 group transition-colors"
+          :class="[
+            mobile ? 'w-12 h-16 shrink-0' : 'w-16 h-24',
+            isSlotSelected(index) ? 'border-gold ring-2 ring-gold/40' : 'border-slate-400 hover:border-gold/60',
+          ]"
+          @click="handleSlotTap(index)"
+          @dragover.prevent="onSlotDragOver"
+          @drop="onDrop($event, index)"
         >
-          {{ slot.item.value }}
-        </div>
+          <span v-if="!slot.item" class="text-slate-500 font-medium" :class="mobile ? 'text-[10px]' : 'text-xs'"
+            >{{ mobile ? index + 1 : `Slot ${index + 1}` }}</span
+          >
 
-        <!-- Card in slot -->
-        <div
-          v-else
-          class="cursor-move relative"
-          draggable="true"
-          @dragstart="onDragStart($event, index, 'board')"
-        >
-          <Card :card="slot.item" :isFaceDown="false" />
-        </div>
+          <div
+            v-else-if="slot.item.type === 'op'"
+            class="rounded flex items-center justify-center cursor-move font-bold border-2 relative"
+            :class="[mobile ? 'w-12 h-16 text-xl' : 'w-16 h-24 text-2xl', opColor(slot.item.value)]"
+            :draggable="!mobile"
+            @dragstart="onDragStart($event, index, 'board')"
+          >
+            {{ slot.item.value }}
+          </div>
 
-        <!-- Remove Button (X) -->
-        <button
-          v-if="slot.item"
-          @click.stop="removeSlotItem(index)"
-          class="absolute -top-2 -right-2 bg-rose-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10 hover:bg-rose-600 border border-rose-400/70"
-          title="Remove"
-        >
-          ✕
-        </button>
+          <div
+            v-else
+            class="cursor-move relative"
+            :draggable="!mobile"
+            @dragstart="onDragStart($event, index, 'board')"
+          >
+            <Card :card="slot.item" :isFaceDown="false" :compact="mobile" />
+          </div>
+
+          <button
+            v-if="slot.item"
+            @click.stop="removeSlotItem(index)"
+            class="absolute -top-2 -right-2 bg-rose-700 text-white rounded-full flex items-center justify-center font-bold transition-opacity shadow-md z-10 hover:bg-rose-600 border border-rose-400/70"
+            :class="[
+              mobile ? 'w-6 h-6 text-sm opacity-100' : 'w-5 h-5 text-xs opacity-0 group-hover:opacity-100',
+            ]"
+            title="Remove"
+          >
+            ✕
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Result Preview & Validation Feedback -->
-    <div class="text-center mt-3 font-mono h-6 transition-colors duration-300 relative">
+    <div class="text-center mt-3 font-mono min-h-6 transition-colors duration-300 relative">
       <div v-if="divisionByZeroError" class="text-red-400 font-bold">
         ❌ Division by zero is not allowed!
       </div>
@@ -79,100 +99,122 @@
         </span>
         <span v-else class="text-red-400 font-bold"> ❌ Invalid Equation (Check syntax) </span>
       </div>
-      <div v-else class="text-amber-300">
+      <div v-else class="text-amber-300 text-sm">
         Place all cards ({{ availableCards.length }} left) and operators ({{ availableOps.length }}
         left)
       </div>
     </div>
 
-    <!-- Hand (Source) -->
     <div class="mt-4 mb-2 px-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
       Your Hand
     </div>
     <div
-      class="flex gap-2 justify-center flex-wrap min-h-[6rem] p-4 rounded-xl bg-slate-900/50 border-2 border-dashed border-slate-700 transition-colors"
-      :class="{ 'items-center content-center': isHandEmpty }"
-      @dragover.prevent
+      class="min-h-[6rem] p-3 rounded-xl bg-slate-900/50 border-2 border-dashed border-slate-700 transition-colors"
+      :class="mobile ? 'overflow-x-auto' : ''"
+      @dragover.prevent="onHandDragOver"
       @drop="onHandDrop($event)"
     >
       <div
         v-if="isHandEmpty"
-        class="w-full text-center text-sm font-semibold tracking-wide text-slate-500"
+        class="w-full text-center text-sm font-semibold tracking-wide text-slate-500 flex items-center justify-center min-h-[4rem]"
       >
         Hand empty. All cards are in play.
       </div>
+
       <div
-        v-for="(card, i) in availableCards"
-        :key="card.id"
-        class="cursor-move hover:-translate-y-1 transition-transform"
-        @click="addFromHand(card, 'card', i)"
+        v-else
+        :class="
+          mobile
+            ? 'flex gap-2 min-w-max items-center'
+            : 'flex gap-2 justify-center flex-wrap items-start w-full'
+        "
       >
-        <Card
-          :card="card"
-          :isFaceDown="false"
-          draggable="true"
-          @dragstart="onDragStart($event, i, 'hand')"
-        />
-      </div>
-      <!-- Operators -->
-      <div
-        v-for="(op, i) in availableOps"
-        :key="'op' + i"
-        class="w-16 h-24 rounded-lg flex items-center justify-center cursor-move text-2xl font-bold border-2 hover:-translate-y-1 transition-transform shadow-md"
-        :class="opColor(op)"
-        draggable="true"
-        @dragstart="onOpDragStart($event, op, i)"
-        @click="addFromHand(op, 'op', i)"
-      >
-        {{ op }}
+        <div
+          v-for="(card, i) in availableCards"
+          :key="card.id"
+          class="cursor-move transition-transform"
+          :class="[
+            mobile ? '' : 'hover:-translate-y-1',
+          ]"
+          @click="onHandItemTap('card', i, card)"
+        >
+          <Card
+            :card="card"
+            :isFaceDown="false"
+            :compact="mobile"
+            :draggable="!mobile"
+            @dragstart="onDragStart($event, i, 'hand')"
+          />
+        </div>
+
+        <div
+          v-for="(op, i) in availableOps"
+          :key="'op' + i"
+          class="rounded-lg flex items-center justify-center cursor-move font-bold border-2 transition-transform shadow-md"
+          :class="[
+            mobile ? 'w-12 h-16 text-xl' : 'w-16 h-24 text-2xl hover:-translate-y-1',
+            opColor(op),
+          ]"
+          :draggable="!mobile"
+          @dragstart="onOpDragStart($event, op, i)"
+          @click="onHandItemTap('op', i, op)"
+        >
+          {{ op }}
+        </div>
       </div>
     </div>
 
-    <!-- Swing Phase Label -->
     <div
       v-if="swingPhase"
-      class="text-center mt-3 text-lg font-bold tracking-wide"
-      :class="swingPhase === 'low' ? 'text-blue-400' : 'text-red-400'"
+      class="text-center mt-3 font-bold tracking-wide"
+      :class="[mobile ? 'text-base' : 'text-lg', swingPhase === 'low' ? 'text-blue-400' : 'text-red-400']"
     >
       🎯 SWING — Build your
       {{ swingPhase === 'low' ? 'LOW (target 1)' : 'HIGH (target 20)' }} equation
     </div>
 
-    <!-- Controls -->
-    <div class="flex justify-center gap-4 mt-6">
+    <div
+      class="mt-4"
+      :class="mobile ? 'grid grid-cols-1 gap-2' : 'flex justify-center gap-4 mt-6'"
+    >
       <template v-if="!swingPhase">
         <button
-          @click="declare('LOW')"
-          :disabled="!isReadyToSubmit"
-          class="bg-blue-700 hover:bg-blue-600 text-white px-6 py-2.5 rounded-full border border-blue-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
+          @click="startSwing()"
+          class="bg-gold hover:bg-yellow-400 text-black border border-yellow-300 font-bold shadow-[0_0_16px_rgba(255,215,0,0.35)] transition-all"
+          :class="mobile ? 'w-full min-h-11 px-4 py-2.5 rounded-lg' : 'px-6 py-2.5 rounded-full hover:scale-105'"
         >
-          Target 1 (Low)
+          🎯 Swing
         </button>
         <button
           @click="declare('HIGH')"
           :disabled="!isReadyToSubmit"
-          class="bg-rose-700 hover:bg-rose-600 text-white px-6 py-2.5 rounded-full border border-rose-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
+          class="bg-rose-700 hover:bg-rose-600 text-white border border-rose-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          :class="mobile ? 'w-full min-h-11 px-4 py-2.5 rounded-lg font-semibold' : 'px-6 py-2.5 rounded-full hover:scale-105'"
         >
           Target 20 (High)
         </button>
         <button
-          @click="startSwing()"
-          class="bg-gold hover:bg-yellow-400 text-black px-6 py-2.5 rounded-full border border-yellow-300 font-bold shadow-[0_0_16px_rgba(255,215,0,0.35)] transition-all hover:scale-105"
+          @click="declare('LOW')"
+          :disabled="!isReadyToSubmit"
+          class="bg-blue-700 hover:bg-blue-600 text-white border border-blue-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          :class="mobile ? 'w-full min-h-11 px-4 py-2.5 rounded-lg font-semibold' : 'px-6 py-2.5 rounded-full hover:scale-105'"
         >
-          🎯 Swing
+          Target 1 (Low)
         </button>
       </template>
       <template v-else-if="swingPhase === 'low'">
         <button
           @click="confirmSwingLow()"
           :disabled="!isReadyToSubmit"
-          class="bg-blue-700 hover:bg-blue-600 text-white px-6 py-2.5 rounded-full border border-blue-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
+          class="bg-blue-700 hover:bg-blue-600 text-white border border-blue-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          :class="mobile ? 'w-full min-h-11 px-4 py-2.5 rounded-lg font-semibold' : 'px-6 py-2.5 rounded-full hover:scale-105'"
         >
           Confirm Low Equation →
         </button>
         <button
           @click="cancelSwing()"
-          class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-full border border-slate-500 transition-colors"
+          class="bg-slate-700 hover:bg-slate-600 text-white border border-slate-500 transition-colors"
+          :class="mobile ? 'w-full min-h-11 px-4 py-2.5 rounded-lg font-semibold' : 'px-5 py-2.5 rounded-full'"
         >
           Cancel
         </button>
@@ -181,13 +223,15 @@
         <button
           @click="confirmSwingHigh()"
           :disabled="!isReadyToSubmit"
-          class="bg-rose-700 hover:bg-rose-600 text-white px-6 py-2.5 rounded-full border border-rose-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
+          class="bg-rose-700 hover:bg-rose-600 text-white border border-rose-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          :class="mobile ? 'w-full min-h-11 px-4 py-2.5 rounded-lg font-semibold' : 'px-6 py-2.5 rounded-full hover:scale-105'"
         >
           Submit Swing!
         </button>
         <button
           @click="cancelSwing()"
-          class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-full border border-slate-500 transition-colors"
+          class="bg-slate-700 hover:bg-slate-600 text-white border border-slate-500 transition-colors"
+          :class="mobile ? 'w-full min-h-11 px-4 py-2.5 rounded-lg font-semibold' : 'px-5 py-2.5 rounded-full'"
         >
           Cancel
         </button>
@@ -197,11 +241,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import Card from './Card.vue'
 import { useGameStore } from '../stores/game'
 
-// Per-operator color classes (matches App.vue opStyle)
+const props = defineProps({
+  mobile: {
+    type: Boolean,
+    default: false,
+  },
+})
+
 const opColor = (op) => {
   switch (op) {
     case '+':
@@ -220,39 +270,49 @@ const opColor = (op) => {
 const game = useGameStore()
 const player = computed(() => game.players[0])
 
-// Track available items locally to handle the drag-drop state
 const availableCards = ref([])
 const availableOps = ref([])
-
-// Slots are dynamically sized to match cards + operators
 const slots = ref([])
+const selectedItem = ref(null)
 
 const hasAnySlotFilled = computed(() => slots.value.some((s) => s.item !== null))
-
-onMounted(() => {
-  if (player.value) {
-    // Filter out special cards (multiply/sqrt) — they modify ops/numbers, not placed in equation
-    availableCards.value = player.value.hand.filter((c) => c.type === 'number' || c.type === 'sqrt')
-    availableOps.value = [...player.value.ops]
-    // Total slots = number of playable cards + number of operators
-    const totalSlots = availableCards.value.length + availableOps.value.length
-    slots.value = Array.from({ length: totalSlots }, () => ({ item: null }))
-  }
+const selectedItemHint = computed(() => {
+  if (!selectedItem.value) return ''
+  return selectedItem.value.source === 'board' ? 'Slot selected' : ''
 })
 
-const onDragStart = (evt, index, source) => {
-  evt.dataTransfer.setData('type', 'card')
-  evt.dataTransfer.setData('index', index)
-  evt.dataTransfer.setData('source', source)
+onMounted(() => {
+  resetSlots()
+})
+
+watch(
+  () => props.mobile,
+  () => {
+    clearSelection()
+  },
+)
+
+const clearSelection = () => {
+  selectedItem.value = null
 }
 
-const onOpDragStart = (evt, op, index) => {
-  evt.dataTransfer.setData('type', 'op')
-  evt.dataTransfer.setData('val', op)
-  evt.dataTransfer.setData('index', index)
+const createOpItem = (op) => ({ type: 'op', value: op, id: `op-${Math.random()}` })
+
+const resetSlots = () => {
+  if (player.value) {
+    availableCards.value = player.value.hand.filter((c) => c.type === 'number' || c.type === 'sqrt')
+    availableOps.value = [...player.value.ops]
+    const totalSlots = availableCards.value.length + availableOps.value.length
+    slots.value = Array.from({ length: totalSlots }, () => ({ item: null }))
+    clearSelection()
+  }
 }
 
-// Helper: Return an item to the correct available list
+const isSlotSelected = (index) => {
+  if (!props.mobile || !selectedItem.value) return false
+  return selectedItem.value.source === 'board' && selectedItem.value.index === index
+}
+
 const returnItemToHand = (item) => {
   if (!item) return
   if (item.type === 'op') {
@@ -264,49 +324,109 @@ const returnItemToHand = (item) => {
 
 const removeSlotItem = (index) => {
   const item = slots.value[index].item
-  if (item) {
-    returnItemToHand(item)
-    slots.value[index] = { item: null }
+  if (!item) return
+  if (selectedItem.value?.source === 'board' && selectedItem.value.index === index) {
+    clearSelection()
   }
+  returnItemToHand(item)
+  slots.value[index] = { item: null }
 }
 
-// Click to Add Logic
 const addFromHand = (item, type, index) => {
-  // Find the leftmost empty slot
   const targetIndex = slots.value.findIndex((s) => !s.item)
+  if (targetIndex === -1) return
 
-  // If we found a valid slot
-  if (targetIndex !== -1) {
-    // Remove from hand source
-    if (type === 'card') {
-      availableCards.value.splice(index, 1)
-      slots.value[targetIndex] = { item: item }
-    } else {
-      availableOps.value.splice(index, 1)
-      const opItem = { type: 'op', value: item, id: `op-${Math.random()}` }
-      slots.value[targetIndex] = { item: opItem }
-    }
+  if (type === 'card') {
+    availableCards.value.splice(index, 1)
+    slots.value[targetIndex] = { item }
+    return
   }
+
+  availableOps.value.splice(index, 1)
+  slots.value[targetIndex] = { item: createOpItem(item) }
+}
+
+const onHandItemTap = (kind, index, item) => {
+  addFromHand(item, kind, index)
+  if (props.mobile) clearSelection()
+}
+
+const handleSlotTap = (slotIndex) => {
+  if (!props.mobile) return
+
+  const targetItem = slots.value[slotIndex].item
+
+  if (!selectedItem.value) {
+    if (!targetItem) return
+    selectedItem.value = {
+      source: 'board',
+      kind: targetItem.type === 'op' ? 'op' : 'card',
+      index: slotIndex,
+    }
+    return
+  }
+
+  if (selectedItem.value.source !== 'board') {
+    clearSelection()
+    return
+  }
+
+  const sourceIndex = selectedItem.value.index
+  if (sourceIndex === slotIndex) {
+    clearSelection()
+    return
+  }
+
+  const movingItem = slots.value[sourceIndex].item
+  if (!movingItem) {
+    clearSelection()
+    return
+  }
+
+  slots.value[sourceIndex] = { item: targetItem || null }
+  slots.value[slotIndex] = { item: movingItem }
+  clearSelection()
+}
+
+const onDragStart = (evt, index, source) => {
+  if (props.mobile) return
+  evt.dataTransfer.setData('type', 'card')
+  evt.dataTransfer.setData('index', index)
+  evt.dataTransfer.setData('source', source)
+}
+
+const onOpDragStart = (evt, op, index) => {
+  if (props.mobile) return
+  evt.dataTransfer.setData('type', 'op')
+  evt.dataTransfer.setData('val', op)
+  evt.dataTransfer.setData('index', index)
+}
+
+const onSlotDragOver = () => {
+  if (props.mobile) return
+}
+
+const onHandDragOver = () => {
+  if (props.mobile) return
 }
 
 const onHandDrop = (evt) => {
+  if (props.mobile) return
   const source = evt.dataTransfer.getData('source')
-  // Only handle items coming from the board slots
-  if (source === 'board') {
-    const index = evt.dataTransfer.getData('index')
-    const item = slots.value[index].item
-    if (item) {
-      returnItemToHand(item)
-      slots.value[index] = { item: null }
-    }
-  }
+  if (source !== 'board') return
+  const index = Number(evt.dataTransfer.getData('index'))
+  const item = slots.value[index]?.item
+  if (!item) return
+  returnItemToHand(item)
+  slots.value[index] = { item: null }
 }
 
 const onDrop = (evt, slotIndex) => {
+  if (props.mobile) return
   const type = evt.dataTransfer.getData('type')
 
   if (type === 'card') {
-    const sourceIndex = evt.dataTransfer.getData('index')
+    const sourceIndex = Number(evt.dataTransfer.getData('index'))
     const source = evt.dataTransfer.getData('source')
 
     let card
@@ -314,41 +434,32 @@ const onDrop = (evt, slotIndex) => {
       card = availableCards.value[sourceIndex]
       availableCards.value.splice(sourceIndex, 1)
     } else {
-      // Moving from another slot
       card = slots.value[sourceIndex].item
       slots.value[sourceIndex] = { item: null }
     }
 
-    // Swap if occupied
     if (slots.value[slotIndex].item) {
       returnItemToHand(slots.value[slotIndex].item)
     }
     slots.value[slotIndex] = { item: card }
-  } else if (type === 'op') {
-    const index = evt.dataTransfer.getData('index')
+    return
+  }
+
+  if (type === 'op') {
     const val = evt.dataTransfer.getData('val')
-
-    // Create temp object for op to fit in card slot structure
-    const opItem = { type: 'op', value: val, id: `op-${Math.random()}` }
-
-    if (availableOps.value.includes(val)) {
-      const idx = availableOps.value.indexOf(val)
+    const opItem = createOpItem(val)
+    const idx = availableOps.value.indexOf(val)
+    if (idx > -1) {
       availableOps.value.splice(idx, 1)
     }
-
     if (slots.value[slotIndex].item) {
-      // Return existing to pile
       returnItemToHand(slots.value[slotIndex].item)
     }
-
     slots.value[slotIndex] = { item: opItem }
   }
 }
 
-// Validation: ALL cards and ALL operators must be used.
-const isValid = computed(() => {
-  return availableCards.value.length === 0 && availableOps.value.length === 0
-})
+const isValid = computed(() => availableCards.value.length === 0 && availableOps.value.length === 0)
 const isHandEmpty = computed(() => isValid.value)
 
 const divisionByZeroError = ref(false)
@@ -377,20 +488,13 @@ const calculateResult = () => {
 
     if (!str.trim()) return null
 
-    // Check for trailing operator or partial equation issues implicitly by catch
-    // But specific check for division by zero before eval if possible?
-    // Actually, eval/Function will return Infinity for 1/0
-
     const result = new Function('return ' + str)()
-
     if (!isFinite(result) || isNaN(result)) {
-      // Check if it's explicitly division by zero or just bad syntax (like "1 +")
-      // Simple heuristic: if we have full equation but result is NaN/Inf
       if (!isFinite(result)) divisionByZeroError.value = true
       return null
     }
     return result
-  } catch (e) {
+  } catch {
     return null
   }
 }
@@ -400,11 +504,7 @@ const isReadyToSubmit = computed(
   () => isValid.value && previewResult.value !== null && !divisionByZeroError.value,
 )
 
-const declare = (target) => {
-  if (!isReadyToSubmit.value) return
-  const res = previewResult.value
-
-  // Build a human-readable equation string from the slots
+const buildEquationString = () => {
   let eqStr = ''
   slots.value.forEach((s) => {
     if (!s.item) return
@@ -412,12 +512,17 @@ const declare = (target) => {
     else if (s.item.type === 'sqrt') eqStr += '√'
     else if (s.item.type === 'op') eqStr += ` ${s.item.value} `
   })
-  player.value.equationStr = eqStr.trim()
+  return eqStr.trim()
+}
+
+const declare = (target) => {
+  if (!isReadyToSubmit.value) return
+  const res = previewResult.value
+  player.value.equationStr = buildEquationString()
   game.submitEquation(0, target, res)
 }
 
-// §11: Swing bet flow
-const swingPhase = ref(null) // null | 'low' | 'high'
+const swingPhase = ref(null)
 const savedLowResult = ref(null)
 const savedLowEqStr = ref('')
 
@@ -434,45 +539,19 @@ const cancelSwing = () => {
 
 const confirmSwingLow = () => {
   if (!isReadyToSubmit.value) return
-  const res = previewResult.value
-
-  let eqStr = ''
-  slots.value.forEach((s) => {
-    if (!s.item) return
-    if (s.item.type === 'number') eqStr += s.item.value
-    else if (s.item.type === 'sqrt') eqStr += '√'
-    else if (s.item.type === 'op') eqStr += ` ${s.item.value} `
-  })
-  savedLowResult.value = res
-  savedLowEqStr.value = eqStr.trim()
+  savedLowResult.value = previewResult.value
+  savedLowEqStr.value = buildEquationString()
   swingPhase.value = 'high'
   resetSlots()
 }
 
 const confirmSwingHigh = () => {
   if (!isReadyToSubmit.value) return
-  const res = previewResult.value
-
-  let eqStr = ''
-  slots.value.forEach((s) => {
-    if (!s.item) return
-    if (s.item.type === 'number') eqStr += s.item.value
-    else if (s.item.type === 'sqrt') eqStr += '√'
-    else if (s.item.type === 'op') eqStr += ` ${s.item.value} `
-  })
+  const highResult = previewResult.value
+  const highEq = buildEquationString()
   player.value.lowEqStr = savedLowEqStr.value
-  player.value.highEqStr = eqStr.trim()
-  player.value.equationStr = `L: ${savedLowEqStr.value} | H: ${eqStr.trim()}`
-  game.submitEquation(0, 'SWING', savedLowResult.value, res)
-}
-
-const resetSlots = () => {
-  // Restore all cards and ops from the player's hand
-  if (player.value) {
-    availableCards.value = player.value.hand.filter((c) => c.type === 'number' || c.type === 'sqrt')
-    availableOps.value = [...player.value.ops]
-    const totalSlots = availableCards.value.length + availableOps.value.length
-    slots.value = Array.from({ length: totalSlots }, () => ({ item: null }))
-  }
+  player.value.highEqStr = highEq
+  player.value.equationStr = `L: ${savedLowEqStr.value} | H: ${highEq}`
+  game.submitEquation(0, 'SWING', savedLowResult.value, highResult)
 }
 </script>
