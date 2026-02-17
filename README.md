@@ -15,6 +15,7 @@ Based on the game from the Netflix show _"The Devil's Plan"_, created by Jung Jo
 **Built via Agentic Engineering using:**
 
 - [Claude 4.6 Opus](https://www.anthropic.com/news/claude-opus-4-6)
+- [GPT 5.3 Codex](https://openai.com/index/introducing-gpt-5-3-codex/)
 - [Gemini 3 Pro](https://blog.google/products-and-platforms/products/gemini/gemini-3/)
 
 ---
