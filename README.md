@@ -26,6 +26,15 @@ Based on the game from the Netflix show _"The Devil's Plan"_, created by Jung Jo
 **Objective:**
 Construct a mathematical equation using your cards to get a result as close as possible to **1 (Low)** or **20 (High)**.
 
+### Lobby Settings
+
+- Open **Settings** from the **AI Behavior** card in the **New Game** panel.
+- **AI makes mistakes** (default: **ON**):
+  - **ON:** AI opponents play more like humans with personality and occasional mistakes.
+  - **OFF:** AI always makes the optimal move (deterministic behavior).
+- This setting is saved in browser local storage and restored on app load.
+- Changes apply to the next game you start from the lobby.
+
 ### Game Flow
 
 1. **Ante:** Everyone pays a fixed ante to start.
