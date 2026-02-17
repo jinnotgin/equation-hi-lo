@@ -1052,7 +1052,7 @@ const getAnteStyle = (id) => {
     // Player chip starts at TOP of player panel (closer to center)
     return {
       '--tx': '0px',
-      '--ty': '-20vh',
+      '--ty': '-27.5vh',
       animation: 'ante-travel 1s cubic-bezier(0.5, 0, 0.5, 1) forwards',
     }
   }
