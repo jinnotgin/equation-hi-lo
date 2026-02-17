@@ -459,7 +459,7 @@
 
           <!-- Actions -->
           <div
-            v-if="isMyTurn && gameStore.phase !== 'SHOWDOWN'"
+            v-if="isMyTurn && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
             class="flex gap-4 mt-6 items-center"
           >
             <button

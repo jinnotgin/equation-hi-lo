@@ -379,7 +379,7 @@ export const useGameStore = defineStore('game', {
       }
     },
 
-    dealInitialCards() {
+    async dealInitialCards() {
       this.phase = 'DEALING'
       this.players.forEach((p) => {
         if (p.eliminated) return
@@ -387,6 +387,9 @@ export const useGameStore = defineStore('game', {
         this.drawCard(p, false) // Card 2
         this.drawCard(p, false) // Card 3
       })
+
+      // Pause for deal animation (cards flying to players)
+      await new Promise((r) => setTimeout(r, 1500))
 
       // Pause if human has to discard an operator
       if (this.pendingDiscard) return
