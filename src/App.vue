@@ -215,7 +215,7 @@
             class="text-lime-400 hover:text-gold transition-colors underline decoration-slate-600 underline-offset-4"
             >Jin</a
           >
-          &copy; 2026
+          &copy; 2026 • v{{ displayVersion }}
         </p>
         <p class="text-sm opacity-65 uppercase tracking-widest">
           Built using Agentic Engineering •
@@ -308,6 +308,16 @@
 
     <!-- Main Table (Rounded Poker Table Shape) -->
     <template v-if="gameStore.phase !== 'LOBBY'">
+      <button
+        v-if="gameStore.phase !== 'GAME_OVER'"
+        @click="exitGame"
+        class="fixed top-5 right-5 z-[70] h-9 w-9 rounded-full border border-white/50 bg-black/70 text-white text-xl leading-none hover:bg-white/10 hover:border-white transition-colors flex items-center justify-center"
+        aria-label="Exit Game"
+        title="Exit Game"
+      >
+        <span class="relative -top-px">×</span>
+      </button>
+
       <!-- Background Layer (The Felt & Border) -->
       <div
         class="fixed inset-4 sm:inset-8 bg-felt-dark border-[20px] border-slate-800 shadow-2xl rounded-[150px] md:rounded-[300px] lg:rounded-[400px] pointer-events-none"
@@ -1107,6 +1117,8 @@ import EquationBoard from './components/EquationBoard.vue'
 import ActionLog from './components/ActionLog.vue'
 import Tooltip from './components/Tooltip.vue'
 
+const appVersion = import.meta.env.VITE_APP_VERSION || '0.0.0'
+const displayVersion = String(Number.parseInt(appVersion, 10) || 0)
 const gameStore = useGameStore()
 const selectedAiCount = ref(3)
 const selectedRounds = ref(10)
@@ -1121,6 +1133,14 @@ const toggleRules = async () => {
     await nextTick()
     rulesSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+}
+
+const exitGame = () => {
+  if (typeof window !== 'undefined') {
+    const confirmed = window.confirm('Exit current game and return to lobby?')
+    if (!confirmed) return
+  }
+  gameStore.resetToLobby()
 }
 
 const me = computed(() => gameStore.players[0] || { hand: [], ops: [], chips: 0 })
