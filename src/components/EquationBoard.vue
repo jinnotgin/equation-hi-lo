@@ -91,9 +91,16 @@
     </div>
     <div
       class="flex gap-2 justify-center flex-wrap min-h-[6rem] p-4 rounded-xl bg-slate-900/50 border-2 border-dashed border-slate-700 transition-colors"
+      :class="{ 'items-center content-center': isHandEmpty }"
       @dragover.prevent
       @drop="onHandDrop($event)"
     >
+      <div
+        v-if="isHandEmpty"
+        class="w-full text-center text-sm font-semibold tracking-wide text-slate-500"
+      >
+        Hand empty. All cards are in play.
+      </div>
       <div
         v-for="(card, i) in availableCards"
         :key="card.id"
@@ -342,6 +349,7 @@ const onDrop = (evt, slotIndex) => {
 const isValid = computed(() => {
   return availableCards.value.length === 0 && availableOps.value.length === 0
 })
+const isHandEmpty = computed(() => isValid.value)
 
 const divisionByZeroError = ref(false)
 
