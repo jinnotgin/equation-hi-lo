@@ -150,8 +150,8 @@
                 out. Last player standing wins.
               </p>
               <p>
-                &bull; <strong class="text-slate-300">Ante:</strong> Everyone pays an ante at the
-                start. It's dead money (doesn't count as a bet).
+                &bull; <strong class="text-slate-300">Ante:</strong> Everyone pays a fixed ante when
+                the round starts (doesn't count as a bet).
               </p>
               <p>
                 &bull; <strong class="text-slate-300">√ Card:</strong> Applies square root to the
