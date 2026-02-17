@@ -886,8 +886,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import { useGameStore } from './stores/game'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useGameStore, AI_NAMES } from './stores/game'
 import Card from './components/Card.vue'
 import EquationBoard from './components/EquationBoard.vue'
 import ActionLog from './components/ActionLog.vue'
@@ -991,6 +991,15 @@ watch(
     }
   },
 )
+
+onMounted(() => {
+  // Preload all possible avatars for a smooth experience
+  const avatarsToPreload = ['You', ...AI_NAMES]
+  avatarsToPreload.forEach((name) => {
+    const img = new Image()
+    img.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${name}`
+  })
+})
 
 // Parse equationStr to display cards in correct equation order, matching to hand for suit info
 const interleaveEquation = (hand, ops, equationStr) => {

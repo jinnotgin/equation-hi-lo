@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { solveHand, SUITS } from '../utils/mathSolver'
 
-const AI_NAMES = ['Luna', 'Archie', 'Sage', 'Nova', 'Felix', 'Iris']
+export const AI_NAMES = ['Luna', 'Archie', 'Sage', 'Nova', 'Felix', 'Iris']
 
 // Suit priority for tiebreaking (§10)
 const HIGH_SUIT_PRIORITY = { gold: 4, silver: 3, bronze: 2, black: 1 }
