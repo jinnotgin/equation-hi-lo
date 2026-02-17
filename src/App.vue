@@ -767,30 +767,106 @@
         </div>
 
         <!-- Next Round / Game Over Controls (Always visible in overlay if ready) -->
-        <div v-if="gameStore.phase === 'END' || gameStore.phase === 'GAME_OVER'" class="mb-4">
+        <!-- Round Over (Fold Win) Card -->
+        <div
+          v-if="gameStore.phase === 'END' && !gameStore.showdownResults"
+          class="bg-black/90 text-white p-8 rounded-xl border-2 border-gold shadow-2xl max-w-md text-center flex flex-col items-center gap-4"
+        >
+          <h3 class="text-gold text-2xl font-bold tracking-wider uppercase">Round Over</h3>
+          <p class="text-lg text-slate-200 font-medium">{{ gameStore.winnerMsg }}</p>
           <button
-            v-if="gameStore.phase === 'END'"
             @click="gameStore.completeRoundAndStartNext()"
-            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
+            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-lg transition-transform hover:scale-105 mt-2"
           >
             Start Next Round ▶
           </button>
+        </div>
+
+        <!-- Game Over Card with Leaderboard -->
+        <div
+          v-if="gameStore.phase === 'GAME_OVER'"
+          class="bg-black/95 text-white p-8 rounded-xl border-2 border-gold shadow-2xl w-full max-w-lg flex flex-col items-center gap-6"
+        >
+          <h3 class="text-gold text-4xl font-black tracking-widest uppercase drop-shadow-md">
+            🏆 Game Over 🏆
+          </h3>
+
+          <!-- Winner Spotlight -->
+          <div class="flex flex-col items-center">
+            <div
+              class="w-24 h-24 rounded-full border-4 border-gold shadow-[0_0_20px_rgba(255,215,0,0.6)] overflow-hidden mb-3"
+            >
+              <img
+                :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${
+                  [...gameStore.players].sort((a, b) => b.chips - a.chips)[0].name
+                }`"
+                alt="Winner"
+                class="w-full h-full bg-slate-800"
+              />
+            </div>
+            <div class="text-2xl font-bold text-white">
+              {{ [...gameStore.players].sort((a, b) => b.chips - a.chips)[0].name }}
+            </div>
+            <div class="text-gold font-mono text-xl font-bold">WINS THE GAME!</div>
+          </div>
+
+          <!-- Leaderboard -->
+          <div class="w-full bg-slate-900/80 rounded-lg border border-slate-700 overflow-hidden">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-800 text-slate-400 uppercase text-xs">
+                <tr>
+                  <th class="px-4 py-2 text-center">#</th>
+                  <th class="px-4 py-2">Player</th>
+                  <th class="px-4 py-2 text-right">Chips</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr
+                  v-for="(p, i) in [...gameStore.players].sort((a, b) => b.chips - a.chips)"
+                  :key="p.id"
+                  class="hover:bg-white/5 transition-colors"
+                  :class="{ 'bg-gold/10': i === 0 }"
+                >
+                  <td class="px-4 py-3 text-center font-mono text-slate-500">
+                    <span v-if="i === 0" class="text-lg leading-none">🥇</span>
+                    <span v-else-if="i === 1" class="text-lg leading-none">🥈</span>
+                    <span v-else-if="i === 2" class="text-lg leading-none">🥉</span>
+                    <span v-else>{{ i + 1 }}</span>
+                  </td>
+                  <td class="px-4 py-3 font-bold flex items-center gap-2">
+                    <img
+                      :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`"
+                      class="w-6 h-6 rounded-full bg-slate-700"
+                    />
+                    <span :class="{ 'text-gold': i === 0 }">{{ p.name }}</span>
+                    <span
+                      v-if="p.isHuman"
+                      class="text-[10px] bg-slate-700 px-1.5 rounded text-slate-300"
+                      >YOU</span
+                    >
+                  </td>
+                  <td class="px-4 py-3 text-right font-mono text-gold">${{ p.chips }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <button
-            v-if="gameStore.phase === 'GAME_OVER'"
-            @click="gameStore.phase = 'LOBBY'"
-            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
+            @click="gameStore.resetToLobby()"
+            class="bg-gold text-black font-bold px-10 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105 mt-2"
           >
             Back to Lobby ⟳
           </button>
         </div>
 
-        <!-- Fallback for fold wins (Simple Message) -->
-        <div
-          v-else
-          class="bg-black/80 text-white p-8 rounded-xl border-2 border-gold shadow-2xl max-w-md text-center"
-        >
-          <h3 class="text-gold text-2xl font-bold mb-2">Round Over</h3>
-          <p class="text-lg">{{ gameStore.winnerMsg }}</p>
+        <!-- Next Round Button (For Showdown results view - at bottom) -->
+        <div v-if="gameStore.phase === 'END' && gameStore.showdownResults" class="mt-4">
+          <button
+            @click="gameStore.completeRoundAndStartNext()"
+            class="bg-gold text-black font-bold px-8 py-3 rounded-full hover:bg-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] text-xl transition-transform hover:scale-105"
+          >
+            Start Next Round ▶
+          </button>
         </div>
       </div>
     </div>
