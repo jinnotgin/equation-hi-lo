@@ -200,22 +200,10 @@
 import { ref, computed, onMounted } from 'vue'
 import Card from './Card.vue'
 import { useGameStore } from '../stores/game'
+import { evaluateEquation } from '../utils/equationEvaluator'
+import { getOperatorStyle } from '../utils/operatorStyle'
 
-// Per-operator color classes (matches App.vue opStyle)
-const opColor = (op) => {
-  switch (op) {
-    case '+':
-      return 'bg-emerald-700 border-emerald-500 text-white'
-    case '-':
-      return 'bg-rose-700 border-rose-500 text-white'
-    case '÷':
-      return 'bg-sky-700 border-sky-500 text-white'
-    case '×':
-      return 'bg-amber-600 border-amber-400 text-black'
-    default:
-      return 'bg-slate-600 border-slate-400 text-white'
-  }
-}
+const opColor = getOperatorStyle
 
 const game = useGameStore()
 const player = computed(() => game.players[0])
@@ -283,7 +271,7 @@ const addFromHand = (item, type, index) => {
       slots.value[targetIndex] = { item: item }
     } else {
       availableOps.value.splice(index, 1)
-      const opItem = { type: 'op', value: item, id: `op-${Math.random()}` }
+      const opItem = { type: 'op', value: item }
       slots.value[targetIndex] = { item: opItem }
     }
   }
@@ -325,11 +313,10 @@ const onDrop = (evt, slotIndex) => {
     }
     slots.value[slotIndex] = { item: card }
   } else if (type === 'op') {
-    const index = evt.dataTransfer.getData('index')
     const val = evt.dataTransfer.getData('val')
 
     // Create temp object for op to fit in card slot structure
-    const opItem = { type: 'op', value: val, id: `op-${Math.random()}` }
+    const opItem = { type: 'op', value: val }
 
     if (availableOps.value.includes(val)) {
       const idx = availableOps.value.indexOf(val)
@@ -353,46 +340,35 @@ const isHandEmpty = computed(() => isValid.value)
 
 const divisionByZeroError = ref(false)
 
+const buildEquationTokens = () => {
+  const tokens = []
+
+  slots.value.forEach((slot) => {
+    if (!slot.item) return
+    if (slot.item.type === 'number') {
+      tokens.push({ type: 'number', value: slot.item.value })
+    } else if (slot.item.type === 'sqrt') {
+      tokens.push({ type: 'sqrt' })
+    } else if (slot.item.type === 'op') {
+      tokens.push({ type: 'op', value: slot.item.value })
+    }
+  })
+
+  return tokens
+}
+
 const calculateResult = () => {
   divisionByZeroError.value = false
-  try {
-    let str = ''
-    let pendingSqrt = false
+  const tokens = buildEquationTokens()
+  if (tokens.length === 0) return null
 
-    slots.value.forEach((s) => {
-      if (!s.item) return
-      if (s.item.type === 'sqrt') pendingSqrt = true
-      else if (s.item.type === 'number') {
-        let val = s.item.value
-        if (pendingSqrt) {
-          val = Math.sqrt(val)
-          pendingSqrt = false
-        }
-        str += val.toString()
-      } else if (s.item.type === 'op') {
-        const op = s.item.value === '×' ? '*' : s.item.value === '÷' ? '/' : s.item.value
-        str += ` ${op} `
-      }
-    })
-
-    if (!str.trim()) return null
-
-    // Check for trailing operator or partial equation issues implicitly by catch
-    // But specific check for division by zero before eval if possible?
-    // Actually, eval/Function will return Infinity for 1/0
-
-    const result = new Function('return ' + str)()
-
-    if (!isFinite(result) || isNaN(result)) {
-      // Check if it's explicitly division by zero or just bad syntax (like "1 +")
-      // Simple heuristic: if we have full equation but result is NaN/Inf
-      if (!isFinite(result)) divisionByZeroError.value = true
-      return null
-    }
-    return result
-  } catch (e) {
+  const evaluation = evaluateEquation(tokens)
+  if (!evaluation.valid) {
+    divisionByZeroError.value = evaluation.error === 'DIV_ZERO'
     return null
   }
+
+  return evaluation.result
 }
 
 const previewResult = computed(() => calculateResult())
@@ -400,19 +376,22 @@ const isReadyToSubmit = computed(
   () => isValid.value && previewResult.value !== null && !divisionByZeroError.value,
 )
 
+const buildEquationString = () => {
+  let eqStr = ''
+  slots.value.forEach((slot) => {
+    if (!slot.item) return
+    if (slot.item.type === 'number') eqStr += slot.item.value
+    else if (slot.item.type === 'sqrt') eqStr += '√'
+    else if (slot.item.type === 'op') eqStr += ` ${slot.item.value} `
+  })
+  return eqStr.trim()
+}
+
 const declare = (target) => {
   if (!isReadyToSubmit.value) return
   const res = previewResult.value
 
-  // Build a human-readable equation string from the slots
-  let eqStr = ''
-  slots.value.forEach((s) => {
-    if (!s.item) return
-    if (s.item.type === 'number') eqStr += s.item.value
-    else if (s.item.type === 'sqrt') eqStr += '√'
-    else if (s.item.type === 'op') eqStr += ` ${s.item.value} `
-  })
-  player.value.equationStr = eqStr.trim()
+  player.value.equationStr = buildEquationString()
   game.submitEquation(0, target, res)
 }
 
@@ -436,15 +415,8 @@ const confirmSwingLow = () => {
   if (!isReadyToSubmit.value) return
   const res = previewResult.value
 
-  let eqStr = ''
-  slots.value.forEach((s) => {
-    if (!s.item) return
-    if (s.item.type === 'number') eqStr += s.item.value
-    else if (s.item.type === 'sqrt') eqStr += '√'
-    else if (s.item.type === 'op') eqStr += ` ${s.item.value} `
-  })
   savedLowResult.value = res
-  savedLowEqStr.value = eqStr.trim()
+  savedLowEqStr.value = buildEquationString()
   swingPhase.value = 'high'
   resetSlots()
 }
@@ -453,16 +425,10 @@ const confirmSwingHigh = () => {
   if (!isReadyToSubmit.value) return
   const res = previewResult.value
 
-  let eqStr = ''
-  slots.value.forEach((s) => {
-    if (!s.item) return
-    if (s.item.type === 'number') eqStr += s.item.value
-    else if (s.item.type === 'sqrt') eqStr += '√'
-    else if (s.item.type === 'op') eqStr += ` ${s.item.value} `
-  })
+  const eqStr = buildEquationString()
   player.value.lowEqStr = savedLowEqStr.value
-  player.value.highEqStr = eqStr.trim()
-  player.value.equationStr = `L: ${savedLowEqStr.value} | H: ${eqStr.trim()}`
+  player.value.highEqStr = eqStr
+  player.value.equationStr = `L: ${savedLowEqStr.value} | H: ${eqStr}`
   game.submitEquation(0, 'SWING', savedLowResult.value, res)
 }
 

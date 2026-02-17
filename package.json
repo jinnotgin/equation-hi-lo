@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "run-s lint:*",
-    "lint:oxlint": "oxlint . --fix",
-    "lint:eslint": "eslint . --fix --cache",
+    "lint": "run-s lint:oxlint lint:eslint",
+    "lint:oxlint": "oxlint .",
+    "lint:eslint": "eslint . --cache",
+    "lint:fix": "run-s lint:fix:oxlint lint:fix:eslint",
+    "lint:fix:oxlint": "oxlint . --fix",
+    "lint:fix:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
