@@ -382,7 +382,7 @@
                 <div
                   v-for="p in opponents"
                   :key="p.id"
-                  class="rounded-lg border p-2 transition-all"
+                  class="relative rounded-lg border p-2 transition-all"
                   :class="{
                     'opacity-40 grayscale': p.folded || p.eliminated,
                     'border-gold/70 bg-gold/10 shadow-[0_0_14px_rgba(255,215,0,0.12)]':
@@ -390,6 +390,13 @@
                     'border-slate-600 bg-slate-900/70': !(gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg),
                   }"
                 >
+                  <div
+                    v-if="p.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
+                    class="absolute top-2 right-2 text-base font-bold text-amber-300"
+                  >
+                    Bet ${{ p.currentBet }}
+                  </div>
+
                   <div class="flex items-center gap-2.5">
                     <div
                       class="relative w-9 h-9 rounded-full overflow-hidden border-2 bg-slate-800 shrink-0"
@@ -429,14 +436,8 @@
                           {{ p.eliminated ? 'Out' : 'Folded' }}
                         </span>
                       </div>
-                      <div class="mt-0.5 flex items-center justify-between gap-2">
-                        <div class="text-sm font-mono text-gold">${{ p.chips }}</div>
-                        <div
-                          v-if="p.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
-                          class="text-base font-bold text-amber-300 pr-1"
-                        >
-                          Bet ${{ p.currentBet }}
-                        </div>
+                      <div class="mt-0.5 flex items-center gap-2">
+                        <div class="text-sm font-mono font-extrabold text-gold">${{ p.chips }}</div>
                       </div>
                     </div>
                   </div>
@@ -470,31 +471,53 @@
             class="sticky bottom-0 border-t border-slate-700/80 bg-black/80 backdrop-blur px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.8rem)]"
           >
             <div
-              class="rounded-xl border p-2.5"
+              class="relative rounded-xl border p-2.5"
               :class="{
                 'opacity-50 grayscale': me.folded,
                 'border-gold/70 bg-gold/10': isMyTurn && !gameStore.winnerMsg,
                 'border-slate-700 bg-slate-900/60': !(isMyTurn && !gameStore.winnerMsg),
               }"
             >
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="truncate text-base font-bold text-white">{{ me.name }}</span>
-                  <Tooltip text="Dealer" v-if="gameStore.dealerIndex === me.id">
-                    <span
-                      class="bg-white text-black font-bold rounded-full w-5 h-5 flex items-center justify-center border border-slate-400 text-[10px] shadow-sm cursor-help"
-                      >D</span
-                    >
-                  </Tooltip>
+              <div class="flex items-center gap-3">
+                <div
+                  v-if="me.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
+                  class="absolute top-2 right-2 text-base font-bold text-amber-300"
+                >
+                  Bet ${{ me.currentBet }}
                 </div>
-                <span class="text-gold font-mono text-lg font-bold shrink-0">${{ me.chips }}</span>
-              </div>
 
-              <div
-                v-if="me.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
-                class="mt-1.5 text-[11px] font-bold text-amber-300"
-              >
-                Your bet: ${{ me.currentBet }}
+                <div class="flex items-center min-w-0 flex-1">
+                  <div class="min-w-0 flex-1 pr-20">
+                    <div class="flex items-center gap-1.5">
+                      <div class="truncate text-sm font-bold text-white">{{ me.name }}</div>
+                      <Tooltip text="Dealer" v-if="gameStore.dealerIndex === me.id">
+                        <div
+                          class="bg-white text-black font-bold rounded-full w-4 h-4 flex items-center justify-center border border-slate-400 text-[10px] shadow-sm cursor-help"
+                        >
+                          D
+                        </div>
+                      </Tooltip>
+                      <span
+                        v-if="me.lastAction"
+                        class="px-1.5 py-0.5 rounded border border-slate-500 text-[9px] text-slate-300 font-semibold uppercase tracking-wide"
+                      >
+                        {{ me.lastAction }}
+                      </span>
+                      <span
+                        v-if="me.eliminated || me.folded"
+                        class="px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wide"
+                        :class="
+                          me.eliminated ? 'text-slate-400 border-slate-600' : 'text-rose-300 border-rose-500/60'
+                        "
+                      >
+                        {{ me.eliminated ? 'Out' : 'Folded' }}
+                      </span>
+                    </div>
+                    <div class="mt-0.5 flex items-center gap-2">
+                      <div class="text-sm font-mono font-extrabold text-gold">${{ me.chips }}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="mt-2 overflow-x-auto">
@@ -686,7 +709,7 @@
                 </div>
               </Tooltip>
             </div>
-            <span class="text-gold font-mono text-base">${{ p.chips }}</span>
+            <span class="text-gold font-mono font-bold text-base">${{ p.chips }}</span>
             <!-- Cards + Ops row -->
             <div class="flex items-center gap-2 mt-1.5 relative">
               <TransitionGroup name="deal-card" tag="div" class="flex -space-x-1">
@@ -807,7 +830,7 @@
                   >
                 </Tooltip>
               </div>
-              <div class="text-gold font-mono text-xl">${{ me.chips }}</div>
+              <div class="text-gold font-mono font-bold text-xl">${{ me.chips }}</div>
             </div>
 
             <!-- Hand -->
@@ -1272,7 +1295,7 @@
                       >YOU</span
                     >
                   </td>
-                  <td class="px-4 py-3 text-right font-mono text-gold">${{ p.chips }}</td>
+                  <td class="px-4 py-3 text-right font-mono font-bold text-gold">${{ p.chips }}</td>
                 </tr>
               </tbody>
             </table>
