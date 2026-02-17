@@ -149,7 +149,6 @@ export const useGameStore = defineStore('game', {
     phase: 'LOBBY', // LOBBY, ANTE, ROUND_1, DEAL_4, ROUND_2, SHOWDOWN, END, GAME_OVER
     minBet: 10,
     currentBet: 0,
-    communityMsg: 'Welcome to Equation Hi-Lo',
     winnerMsg: null,
     lastAggressorIndex: -1,
     actedSinceLastAction: [],
@@ -358,7 +357,6 @@ export const useGameStore = defineStore('game', {
       this.createDeck()
 
       // Auto Ante — handle all-in ante (§12)
-      this.communityMsg = 'Collecting Ante...'
       this.collectingAnte = true
 
       // 1. Deduct chips immediately (they spawn at player)
@@ -579,7 +577,6 @@ export const useGameStore = defineStore('game', {
       const active = this.players.filter((p) => !p.folded)
       const allAtCap = active.every((p) => p.totalWagered >= this.roundBettingCap || p.chips === 0)
       if (allAtCap) {
-        this.communityMsg = 'Betting cap reached — skipping betting.'
         if (nextPhase === 'ROUND_1') {
           await new Promise((r) => setTimeout(r, 1000))
           await this.dealFourthCard()
@@ -981,7 +978,6 @@ export const useGameStore = defineStore('game', {
       this.pendingDiscard = null
       this.pot = 0
       this.round = 0
-      this.communityMsg = ''
       this.actionLog = []
       this.players = []
     },
@@ -998,7 +994,6 @@ export const useGameStore = defineStore('game', {
       if (human) {
         human.folded = true
         human.lastAction = 'Fold'
-        // this.communityMsg = 'You Folded.' // Remove
         this.logPlayerAction(human, 'fold')
         this.nextTurn()
       }
