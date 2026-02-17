@@ -1,28 +1,37 @@
 <template>
-  <div class="bg-slate-800 p-4 rounded-lg shadow-xl w-full max-w-4xl mx-auto mt-4">
+  <div
+    class="w-full max-w-4xl mx-auto mt-4 rounded-xl border border-slate-700 bg-slate-900/90 p-5 shadow-2xl backdrop-blur-sm"
+  >
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-white text-lg">Build Your Equation</h2>
+      <h2 class="text-gold text-xl font-bold tracking-wider uppercase">Build Your Equation</h2>
       <button
         v-if="hasAnySlotFilled"
         @click="resetSlots()"
-        class="flex items-center gap-1.5 px-3 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-slate-700 hover:bg-red-900/80 text-slate-300 hover:text-red-200 border border-slate-600 hover:border-red-500 transition-all"
+        class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 hover:bg-rose-900/80 text-slate-300 hover:text-rose-100 border border-slate-600 hover:border-rose-500 transition-all"
       >
         <span class="text-sm">✕</span> Clear All
       </button>
     </div>
 
     <!-- Drop Zone -->
+    <div class="mb-2 flex items-center justify-between px-1">
+      <p class="text-emerald-200 text-xs font-bold uppercase tracking-[0.16em]">
+        Drop Equation Here
+      </p>
+    </div>
     <div
-      class="flex items-center gap-2 p-4 bg-slate-900 rounded-lg min-h-[120px] justify-center flex-wrap"
+      class="flex items-center gap-2 p-4 bg-felt-dark/70 border-2 border-emerald-800/70 rounded-xl min-h-[120px] justify-center flex-wrap shadow-[inset_0_0_0_1px_rgba(16,185,129,0.25)]"
     >
       <div
         v-for="(slot, index) in slots"
         :key="index"
-        class="w-16 h-24 border-2 border-dashed border-slate-600 rounded flex items-center justify-center relative bg-slate-800 group"
+        class="w-16 h-24 border-2 border-dashed border-slate-400 rounded-lg flex items-center justify-center relative bg-slate-800/80 group transition-colors hover:border-gold/60"
         @dragover.prevent
         @drop="onDrop($event, index)"
       >
-        <span v-if="!slot.item" class="text-slate-600 text-xs">Slot {{ index + 1 }}</span>
+        <span v-if="!slot.item" class="text-slate-500 text-xs font-medium"
+          >Slot {{ index + 1 }}</span
+        >
 
         <!-- Operator in slot -->
         <div
@@ -49,7 +58,7 @@
         <button
           v-if="slot.item"
           @click.stop="removeSlotItem(index)"
-          class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10 hover:bg-red-500"
+          class="absolute -top-2 -right-2 bg-rose-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10 hover:bg-rose-600 border border-rose-400/70"
           title="Remove"
         >
           ✕
@@ -58,7 +67,7 @@
     </div>
 
     <!-- Result Preview & Validation Feedback -->
-    <div class="text-center mt-2 font-mono h-6 transition-colors duration-300 relative">
+    <div class="text-center mt-3 font-mono h-6 transition-colors duration-300 relative">
       <div v-if="divisionByZeroError" class="text-red-400 font-bold">
         ❌ Division by zero is not allowed!
       </div>
@@ -70,15 +79,18 @@
         </span>
         <span v-else class="text-red-400 font-bold"> ❌ Invalid Equation (Check syntax) </span>
       </div>
-      <div v-else class="text-gold">
+      <div v-else class="text-amber-300">
         Place all cards ({{ availableCards.length }} left) and operators ({{ availableOps.length }}
         left)
       </div>
     </div>
 
     <!-- Hand (Source) -->
+    <div class="mt-4 mb-2 px-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+      Your Hand
+    </div>
     <div
-      class="flex gap-2 mt-4 justify-center flex-wrap min-h-[6rem] p-4 rounded-lg bg-slate-800/50 border-2 border-dashed border-slate-700 transition-colors"
+      class="flex gap-2 justify-center flex-wrap min-h-[6rem] p-4 rounded-xl bg-slate-900/50 border-2 border-dashed border-slate-700 transition-colors"
       @dragover.prevent
       @drop="onHandDrop($event)"
     >
@@ -99,7 +111,7 @@
       <div
         v-for="(op, i) in availableOps"
         :key="'op' + i"
-        class="w-16 h-24 rounded flex items-center justify-center cursor-move text-2xl font-bold border-2 hover:-translate-y-1 transition-transform"
+        class="w-16 h-24 rounded-lg flex items-center justify-center cursor-move text-2xl font-bold border-2 hover:-translate-y-1 transition-transform shadow-md"
         :class="opColor(op)"
         draggable="true"
         @dragstart="onOpDragStart($event, op, i)"
@@ -112,7 +124,7 @@
     <!-- Swing Phase Label -->
     <div
       v-if="swingPhase"
-      class="text-center mt-2 text-lg font-bold"
+      class="text-center mt-3 text-lg font-bold tracking-wide"
       :class="swingPhase === 'low' ? 'text-blue-400' : 'text-red-400'"
     >
       🎯 SWING — Build your
@@ -125,20 +137,20 @@
         <button
           @click="declare('LOW')"
           :disabled="!isReadyToSubmit"
-          class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="bg-blue-700 hover:bg-blue-600 text-white px-6 py-2.5 rounded-full border border-blue-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
         >
           Target 1 (Low)
         </button>
         <button
           @click="declare('HIGH')"
           :disabled="!isReadyToSubmit"
-          class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="bg-rose-700 hover:bg-rose-600 text-white px-6 py-2.5 rounded-full border border-rose-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
         >
           Target 20 (High)
         </button>
         <button
           @click="startSwing()"
-          class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded border border-purple-400"
+          class="bg-gold hover:bg-yellow-400 text-black px-6 py-2.5 rounded-full border border-yellow-300 font-bold shadow-[0_0_16px_rgba(255,215,0,0.35)] transition-all hover:scale-105"
         >
           🎯 Swing
         </button>
@@ -147,13 +159,13 @@
         <button
           @click="confirmSwingLow()"
           :disabled="!isReadyToSubmit"
-          class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          class="bg-blue-700 hover:bg-blue-600 text-white px-6 py-2.5 rounded-full border border-blue-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
         >
           Confirm Low Equation →
         </button>
         <button
           @click="cancelSwing()"
-          class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded"
+          class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-full border border-slate-500 transition-colors"
         >
           Cancel
         </button>
@@ -162,13 +174,13 @@
         <button
           @click="confirmSwingHigh()"
           :disabled="!isReadyToSubmit"
-          class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          class="bg-rose-700 hover:bg-rose-600 text-white px-6 py-2.5 rounded-full border border-rose-400/70 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
         >
           Submit Swing!
         </button>
         <button
           @click="cancelSwing()"
-          class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded"
+          class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-full border border-slate-500 transition-colors"
         >
           Cancel
         </button>

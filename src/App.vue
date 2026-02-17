@@ -877,13 +877,13 @@
       <!-- Full Builder UI -->
       <div
         v-if="!isBuilderMinimized"
-        class="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4"
+        class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
       >
         <div class="relative w-full max-w-4xl">
           <!-- Minimize Button -->
           <button
             @click="isBuilderMinimized = true"
-            class="absolute -top-12 right-0 text-slate-400 hover:text-white flex items-center gap-2 bg-slate-800/80 px-4 py-2 rounded-full border border-slate-600 hover:border-white transition-all"
+            class="absolute -top-12 right-0 text-slate-200 hover:text-white flex items-center gap-2 bg-slate-900/90 px-5 py-2 rounded-full border border-slate-600 hover:border-gold transition-all shadow-lg"
           >
             <span class="text-sm font-bold">Minimise</span>
           </button>
