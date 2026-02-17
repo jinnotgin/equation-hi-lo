@@ -244,6 +244,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import Card from './Card.vue'
 import { useGameStore } from '../stores/game'
+import { evaluateEquation } from '../utils/equationEvaluator'
+import { getOperatorStyle } from '../utils/operatorStyle'
 
 const props = defineProps({
   mobile: {
@@ -252,23 +254,11 @@ const props = defineProps({
   },
 })
 
-const opColor = (op) => {
-  switch (op) {
-    case '+':
-      return 'bg-emerald-700 border-emerald-500 text-white'
-    case '-':
-      return 'bg-rose-700 border-rose-500 text-white'
-    case '÷':
-      return 'bg-sky-700 border-sky-500 text-white'
-    case '×':
-      return 'bg-amber-600 border-amber-400 text-black'
-    default:
-      return 'bg-slate-600 border-slate-400 text-white'
-  }
-}
+const opColor = getOperatorStyle
 
 const game = useGameStore()
 const player = computed(() => game.players[0])
+const mobile = computed(() => props.mobile)
 
 const availableCards = ref([])
 const availableOps = ref([])
@@ -464,39 +454,35 @@ const isHandEmpty = computed(() => isValid.value)
 
 const divisionByZeroError = ref(false)
 
+const buildEquationTokens = () => {
+  const tokens = []
+
+  slots.value.forEach((slot) => {
+    if (!slot.item) return
+    if (slot.item.type === 'number') {
+      tokens.push({ type: 'number', value: slot.item.value })
+    } else if (slot.item.type === 'sqrt') {
+      tokens.push({ type: 'sqrt' })
+    } else if (slot.item.type === 'op') {
+      tokens.push({ type: 'op', value: slot.item.value })
+    }
+  })
+
+  return tokens
+}
+
 const calculateResult = () => {
   divisionByZeroError.value = false
-  try {
-    let str = ''
-    let pendingSqrt = false
+  const tokens = buildEquationTokens()
+  if (tokens.length === 0) return null
 
-    slots.value.forEach((s) => {
-      if (!s.item) return
-      if (s.item.type === 'sqrt') pendingSqrt = true
-      else if (s.item.type === 'number') {
-        let val = s.item.value
-        if (pendingSqrt) {
-          val = Math.sqrt(val)
-          pendingSqrt = false
-        }
-        str += val.toString()
-      } else if (s.item.type === 'op') {
-        const op = s.item.value === '×' ? '*' : s.item.value === '÷' ? '/' : s.item.value
-        str += ` ${op} `
-      }
-    })
-
-    if (!str.trim()) return null
-
-    const result = new Function('return ' + str)()
-    if (!isFinite(result) || isNaN(result)) {
-      if (!isFinite(result)) divisionByZeroError.value = true
-      return null
-    }
-    return result
-  } catch {
+  const evaluation = evaluateEquation(tokens)
+  if (!evaluation.valid) {
+    divisionByZeroError.value = evaluation.error === 'DIV_ZERO'
     return null
   }
+
+  return evaluation.result
 }
 
 const previewResult = computed(() => calculateResult())
@@ -506,11 +492,11 @@ const isReadyToSubmit = computed(
 
 const buildEquationString = () => {
   let eqStr = ''
-  slots.value.forEach((s) => {
-    if (!s.item) return
-    if (s.item.type === 'number') eqStr += s.item.value
-    else if (s.item.type === 'sqrt') eqStr += '√'
-    else if (s.item.type === 'op') eqStr += ` ${s.item.value} `
+  slots.value.forEach((slot) => {
+    if (!slot.item) return
+    if (slot.item.type === 'number') eqStr += slot.item.value
+    else if (slot.item.type === 'sqrt') eqStr += '√'
+    else if (slot.item.type === 'op') eqStr += ` ${slot.item.value} `
   })
   return eqStr.trim()
 }

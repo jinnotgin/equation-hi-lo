@@ -1441,6 +1441,7 @@ import Card from './components/Card.vue'
 import EquationBoard from './components/EquationBoard.vue'
 import ActionLog from './components/ActionLog.vue'
 import Tooltip from './components/Tooltip.vue'
+import { getOperatorStyle, getOperatorMiniStyle } from './utils/operatorStyle'
 
 const appVersion = import.meta.env.VITE_APP_VERSION || '0.0.0'
 const displayVersion = String(Number.parseInt(appVersion, 10) || 0)
@@ -1700,37 +1701,8 @@ const interleaveEquation = (hand, ops, equationStr) => {
   return result
 }
 
-// Smaller op color styling for showdown grid
-const opColorMini = (op) => {
-  switch (op) {
-    case '+':
-      return 'bg-emerald-700 text-white'
-    case '-':
-      return 'bg-rose-700 text-white'
-    case '÷':
-      return 'bg-sky-700 text-white'
-    case '×':
-      return 'bg-amber-600 text-black'
-    default:
-      return 'bg-slate-600 text-white'
-  }
-}
-
-// Color coding for operations to make them visually distinct
-const opStyle = (op) => {
-  switch (op) {
-    case '+':
-      return 'bg-emerald-700 border-emerald-500 text-white'
-    case '-':
-      return 'bg-rose-700 border-rose-500 text-white'
-    case '÷':
-      return 'bg-sky-700 border-sky-500 text-white'
-    case '×':
-      return 'bg-amber-600 border-amber-400 text-black'
-    default:
-      return 'bg-slate-600 border-slate-400 text-white'
-  }
-}
+const opColorMini = getOperatorMiniStyle
+const opStyle = getOperatorStyle
 
 const actionToastStyle = (action) => {
   if (!action) return ''
@@ -1790,6 +1762,11 @@ watch(
     })
   },
 )
+
+onBeforeUnmount(() => {
+  Object.values(actionToastTimers).forEach((timer) => clearTimeout(timer))
+  actionToastTimers = {}
+})
 </script>
 
 <style>

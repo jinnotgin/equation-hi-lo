@@ -163,9 +163,64 @@ export const useGameStore = defineStore('game', {
     actionLog: [],
     collectingAnte: false, // New state for ante animation
     aiMistakesEnabled: true,
+    roundBettingCap: 0,
+    scheduledTimeouts: {},
+    timeoutSequence: 0,
+    flowToken: 0,
   }),
 
   actions: {
+    isFlowTokenActive(token) {
+      return token === this.flowToken
+    },
+
+    bumpFlowToken() {
+      this.flowToken += 1
+    },
+
+    nextTimeoutId(prefix = 'timer') {
+      this.timeoutSequence += 1
+      return `${prefix}-${this.flowToken}-${this.timeoutSequence}`
+    },
+
+    scheduleTimeout(id, fn, ms, onClear = null) {
+      this.clearScheduledTimeout(id)
+      const handle = setTimeout(() => {
+        const scheduled = this.scheduledTimeouts[id]
+        if (!scheduled || scheduled.handle !== handle) return
+        delete this.scheduledTimeouts[id]
+        fn()
+      }, ms)
+      this.scheduledTimeouts[id] = { handle, onClear }
+      return id
+    },
+
+    clearScheduledTimeout(id) {
+      const scheduled = this.scheduledTimeouts[id]
+      if (!scheduled) return false
+      clearTimeout(scheduled.handle)
+      delete this.scheduledTimeouts[id]
+      if (typeof scheduled.onClear === 'function') scheduled.onClear()
+      return true
+    },
+
+    clearAllScheduledTimeouts() {
+      Object.keys(this.scheduledTimeouts).forEach((id) => this.clearScheduledTimeout(id))
+    },
+
+    delay(ms, prefix = 'delay') {
+      const id = this.nextTimeoutId(prefix)
+      return new Promise((resolve) => {
+        this.scheduleTimeout(id, () => resolve(true), ms, () => resolve(false))
+      })
+    },
+
+    delayWithId(id, ms) {
+      return new Promise((resolve) => {
+        this.scheduleTimeout(id, () => resolve(true), ms, () => resolve(false))
+      })
+    },
+
     loadSettings() {
       try {
         if (typeof window === 'undefined' || !window.localStorage) {
@@ -199,23 +254,20 @@ export const useGameStore = defineStore('game', {
       }
     },
 
-    showAnnouncement(msg) {
-      return new Promise((resolve) => {
-        this.announcement = { msg, visible: true }
-        // Auto-hide after 1.5s
-        setTimeout(() => {
-          if (this.announcement && this.announcement.msg === msg) {
-            this.announcement.visible = false
-            // Clear null after fade out (allow for 500ms transition)
-            setTimeout(() => {
-              this.announcement = null
-              resolve()
-            }, 500)
-          } else {
-            resolve()
-          }
-        }, 1500)
-      })
+    async showAnnouncement(msg) {
+      const flowToken = this.flowToken
+      this.announcement = { msg, visible: true }
+
+      const remainedVisible = await this.delayWithId('announcement-visible', 1500)
+      if (!remainedVisible || !this.isFlowTokenActive(flowToken)) return false
+      if (!this.announcement || this.announcement.msg !== msg) return false
+
+      this.announcement.visible = false
+      const fadeFinished = await this.delayWithId('announcement-fade', 500)
+      if (!fadeFinished || !this.isFlowTokenActive(flowToken)) return false
+      if (this.announcement && this.announcement.msg === msg) this.announcement = null
+
+      return true
     },
 
     shouldAutoResolveShowdown() {
@@ -225,35 +277,52 @@ export const useGameStore = defineStore('game', {
     },
 
     async enterShowdown() {
+      const flowToken = this.flowToken
       this.precomputeAIDeclarations()
       await this.showAnnouncement('Showdown!')
+      if (!this.isFlowTokenActive(flowToken)) return
       this.phase = 'SHOWDOWN'
 
       if (this.shouldAutoResolveShowdown()) {
-        await new Promise((r) => setTimeout(r, 250))
+        const canResolve = await this.delay(250, 'showdown-auto-resolve')
+        if (!canResolve || !this.isFlowTokenActive(flowToken)) return
         this.evaluateShowdown()
       }
     },
 
-    logAction(msg) {
+    logAction(entry) {
       const time = new Date().toLocaleTimeString([], {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
       })
-      this.actionLog.push({ time, msg })
+
+      const payload = typeof entry === 'string' ? { text: entry } : entry || {}
+      this.actionLog.push({
+        time,
+        type: payload.type || 'SYSTEM',
+        actorName: payload.actorName || null,
+        action: payload.action || null,
+        amount: typeof payload.amount === 'number' ? payload.amount : null,
+        round: typeof payload.round === 'number' ? payload.round : null,
+        text: payload.text || '',
+      })
     },
 
     logPlayerAction(player, action, amount = 0) {
       const label = player?.isHuman ? 'You' : player?.name || 'Player'
-      if (action === 'check') this.logAction(`${label} checked.`)
-      else if (action === 'call') this.logAction(`${label} called $${amount}.`)
-      else if (action === 'raise') this.logAction(`${label} raised $${amount}.`)
-      else if (action === 'fold') this.logAction(`${label} folded.`)
+      this.logAction({
+        type: 'PLAYER_ACTION',
+        actorName: label,
+        action,
+        amount: action === 'call' || action === 'raise' ? amount : null,
+      })
     },
 
     initGame(numAi, rounds, aiMistakesEnabled) {
+      this.clearAllScheduledTimeouts()
+      this.bumpFlowToken()
       if (numAi !== undefined) this.numAiPlayers = numAi
       if (rounds !== undefined) this.maxRounds = rounds
       if (aiMistakesEnabled !== undefined) this.setAiMistakesEnabled(aiMistakesEnabled)
@@ -321,14 +390,16 @@ export const useGameStore = defineStore('game', {
     },
 
     async startRound() {
+      const flowToken = this.flowToken
       // Check for last-player-standing §12
       const alive = this.players.filter((p) => !p.eliminated)
       if (alive.length <= 1) {
         this.phase = 'GAME_OVER'
         this.winnerMsg = alive.length === 1 ? `${alive[0].name} wins the game!` : 'Game Over!'
-        this.logAction(
-          `🎮 <strong>Game Over!</strong> ${alive.length === 1 ? alive[0].name + ' wins!' : ''}`,
-        )
+        this.logAction({
+          type: 'ROUND_RESULT',
+          text: `🎮 Game Over! ${alive.length === 1 ? `${alive[0].name} wins!` : ''}`,
+        })
         return
       }
 
@@ -338,20 +409,24 @@ export const useGameStore = defineStore('game', {
         const richest = alive.reduce((best, p) => (p.chips > best.chips ? p : best))
         this.phase = 'GAME_OVER'
         this.winnerMsg = `🏆 ${richest.name} wins with ${richest.chips} chips after ${this.maxRounds} rounds!`
-        this.logAction(
-          `🎮 <strong>Game Over!</strong> ${richest.name} wins with $${richest.chips}!`,
-        )
+        this.logAction({ type: 'ROUND_RESULT', text: `🎮 Game Over! ${richest.name} wins with $${richest.chips}!` })
         return
       }
 
       this.phase = 'ANTE'
-      this.logAction(`━━━ <strong>Round ${this.roundNumber}</strong> ━━━`)
+      this.logAction({
+        type: 'ROUND_START',
+        round: this.roundNumber,
+        text: `Round ${this.roundNumber}`,
+      })
       this.pot = 0
       this.currentTurnIndex = -1
       this.currentBet = this.minBet
       this.winnerMsg = null
       this.showdownResults = null
       this.pendingDiscard = null
+      this.lowTiebreakExplanation = ''
+      this.highTiebreakExplanation = ''
 
       // Betting cap = smallest stack BEFORE ante (§6) — only non-eliminated players
       this.roundBettingCap = Math.min(...alive.map((p) => p.chips))
@@ -371,6 +446,7 @@ export const useGameStore = defineStore('game', {
       })
 
       await this.showAnnouncement(`Round ${this.roundNumber}`)
+      if (!this.isFlowTokenActive(flowToken)) return
       this.createDeck()
 
       // Auto Ante — handle all-in ante (§12)
@@ -388,7 +464,8 @@ export const useGameStore = defineStore('game', {
       })
 
       // 2. Wait for animation to travel to pot (1s)
-      await new Promise((r) => setTimeout(r, 1000))
+      const anteAnimationFinished = await this.delay(1000, 'ante-collect')
+      if (!anteAnimationFinished || !this.isFlowTokenActive(flowToken)) return
 
       // 3. Add to pot and clear animation state
       this.players.forEach((p) => {
@@ -550,6 +627,7 @@ export const useGameStore = defineStore('game', {
     },
 
     async dealInitialCards() {
+      const flowToken = this.flowToken
       this.phase = 'DEALING'
       this.players.forEach((p) => {
         if (p.eliminated) return
@@ -559,19 +637,22 @@ export const useGameStore = defineStore('game', {
       })
 
       // Pause for deal animation (cards flying to players)
-      await new Promise((r) => setTimeout(r, 1500))
+      const cardsDealt = await this.delay(1500, 'deal-initial')
+      if (!cardsDealt || !this.isFlowTokenActive(flowToken)) return
 
       // Pause if human has to discard an operator
       if (this.pendingDiscard) return
 
       this.startBettingRound('ROUND_1')
-      this.logAction(`<strong>Turn 1:</strong> Deal & Betting.`)
+      this.logAction({ text: 'Turn 1: Deal & Betting.' })
     },
 
     async dealFourthCard() {
+      const flowToken = this.flowToken
       this.phase = 'DEAL_4'
       await this.showAnnouncement('4th Card')
-      this.logAction(`<strong>Turn 2:</strong> Dealt 4th card.`)
+      if (!this.isFlowTokenActive(flowToken)) return
+      this.logAction({ text: 'Turn 2: Dealt 4th card.' })
       this.players.forEach((p) => {
         if (!p.folded) this.drawCard(p, false)
       })
@@ -595,10 +676,12 @@ export const useGameStore = defineStore('game', {
       const allAtCap = active.every((p) => p.totalWagered >= this.roundBettingCap || p.chips === 0)
       if (allAtCap) {
         if (nextPhase === 'ROUND_1') {
-          await new Promise((r) => setTimeout(r, 1000))
+          const readyForDeal = await this.delay(1000, 'betting-round-advance')
+          if (!readyForDeal) return
           await this.dealFourthCard()
         } else {
-          await new Promise((r) => setTimeout(r, 1000))
+          const readyForShowdown = await this.delay(1000, 'betting-round-advance')
+          if (!readyForShowdown) return
           await this.enterShowdown()
         }
         return
@@ -633,7 +716,19 @@ export const useGameStore = defineStore('game', {
       }
 
       if (!currentPlayer.isHuman) {
-        setTimeout(() => this.aiMove(currentPlayer), 1500)
+        const flowToken = this.flowToken
+        const phase = this.phase
+        const playerId = currentPlayer.id
+        this.scheduleTimeout(
+          `ai-turn-${playerId}`,
+          () => {
+            if (!this.isFlowTokenActive(flowToken) || this.phase !== phase) return
+            const nextAi = this.players.find((p) => p.id === playerId)
+            if (!nextAi || nextAi.folded || nextAi.isHuman) return
+            this.aiMove(nextAi)
+          },
+          1500,
+        )
       }
     },
 
@@ -839,9 +934,16 @@ export const useGameStore = defineStore('game', {
         this.actedSinceLastAction.push(ai.id)
       }
 
-      setTimeout(() => {
-        this.nextTurn()
-      }, 1500)
+      const flowToken = this.flowToken
+      const phase = this.phase
+      this.scheduleTimeout(
+        'ai-next-turn',
+        () => {
+          if (!this.isFlowTokenActive(flowToken) || this.phase !== phase) return
+          this.nextTurn()
+        },
+        1500,
+      )
     },
 
     placeBet(player, amount) {
@@ -879,7 +981,8 @@ export const useGameStore = defineStore('game', {
           await this.dealFourthCard()
           return
         } else if (this.phase === 'ROUND_2') {
-          await new Promise((r) => setTimeout(r, 1000))
+          const readyForShowdown = await this.delay(1000, 'round-two-showdown')
+          if (!readyForShowdown) return
           await this.enterShowdown()
           return
         }
@@ -893,7 +996,7 @@ export const useGameStore = defineStore('game', {
       this.phase = 'END'
       winner.chips += this.pot
       this.winnerMsg = `${winner.name} wins ${this.pot} (Others folded)`
-      this.logAction(`🏆 <strong>${winner.name}</strong> wins ${this.pot} (others folded)`)
+      this.logAction({ type: 'ROUND_RESULT', text: `🏆 ${winner.name} wins ${this.pot} (others folded)` })
       this.advanceDealer()
       this.checkEliminations()
     },
@@ -974,14 +1077,21 @@ export const useGameStore = defineStore('game', {
     },
 
     resetToLobby() {
+      this.clearAllScheduledTimeouts()
+      this.bumpFlowToken()
       this.phase = 'LOBBY'
       this.currentTurnIndex = -1
       this.winnerMsg = null
       this.showdownResults = null
       this.pendingDiscard = null
       this.pot = 0
-      this.round = 0
+      this.roundNumber = 0
+      this.roundBettingCap = 0
       this.actionLog = []
+      this.lowTiebreakExplanation = ''
+      this.highTiebreakExplanation = ''
+      this.announcement = null
+      this.collectingAnte = false
       this.players = []
     },
 
@@ -1004,7 +1114,6 @@ export const useGameStore = defineStore('game', {
 
     evaluateShowdown() {
       try {
-        console.log('Evaluating Showdown...')
         let lowWinner = null
         let highWinner = null
         let bestLowDiff = Infinity
@@ -1013,11 +1122,6 @@ export const useGameStore = defineStore('game', {
         let highTiebreakExplanation = ''
 
         const active = this.players.filter((p) => !p.folded)
-        console.log(
-          'Active players in showdown:',
-          active.length,
-          active.map((p) => p.name),
-        )
 
         const swingPlayers = active.filter((p) => p.declaration === 'SWING')
 
@@ -1091,7 +1195,10 @@ export const useGameStore = defineStore('game', {
               }
             })
             this.winnerMsg = msg
-            this.logAction(`🏆 <strong>${sp.name}</strong> SWING — wins entire pot ($${this.pot})!`)
+            this.logAction({
+              type: 'ROUND_RESULT',
+              text: `🏆 ${sp.name} SWING - wins entire pot ($${this.pot})!`,
+            })
             this.phase = 'END'
             this.advanceDealer()
             this.checkEliminations()
@@ -1194,13 +1301,14 @@ export const useGameStore = defineStore('game', {
 
         this.winnerMsg = msg || 'No winners found (draw/error)'
         if (bothSides) {
-          this.logAction(
-            `🏆 Low: <strong>${lowWinner.name}</strong> · High: <strong>${highWinner.name}</strong> (pot $${this.pot})`,
-          )
+          this.logAction({
+            type: 'ROUND_RESULT',
+            text: `🏆 Low: ${lowWinner.name} · High: ${highWinner.name} (pot $${this.pot})`,
+          })
         } else if (lowWinner) {
-          this.logAction(`🏆 <strong>${lowWinner.name}</strong> wins pot ($${this.pot})`)
+          this.logAction({ type: 'ROUND_RESULT', text: `🏆 ${lowWinner.name} wins pot ($${this.pot})` })
         } else if (highWinner) {
-          this.logAction(`🏆 <strong>${highWinner.name}</strong> wins pot ($${this.pot})`)
+          this.logAction({ type: 'ROUND_RESULT', text: `🏆 ${highWinner.name} wins pot ($${this.pot})` })
         }
         this.phase = 'END'
         // Advance dealer to next non-eliminated player

@@ -1,19 +1,8 @@
 // Utilities for the game logic
 
+import { evaluateEquation } from './equationEvaluator.js'
+
 export const SUITS = ['gold', 'silver', 'bronze', 'black']
-
-// Check if equation is valid (no division by zero)
-const safeEval = (str) => {
-  try {
-    if (/\/ 0(?:\s|$)/.test(str)) return null
-
-    const res = new Function('return ' + str)()
-    if (!isFinite(res) || isNaN(res)) return null
-    return res
-  } catch (e) {
-    return null
-  }
-}
 
 // Permutation generator (full length)
 const permute = (arr) => {
@@ -52,7 +41,7 @@ const permuteK = (arr, k) => {
  * Generate all ways to assign `count` √ modifiers to `n` number positions.
  */
 const sqrtCombinations = (n, count) => {
-  if (count === 0) return [new Array(n).fill(false)]
+  if (count === 0) return [Array.from({ length: n }, () => false)]
   const results = []
   const combo = (start, remaining, current) => {
     if (remaining === 0) {
@@ -65,7 +54,7 @@ const sqrtCombinations = (n, count) => {
       current[i] = false
     }
   }
-  combo(0, count, new Array(n).fill(false))
+  combo(0, count, Array.from({ length: n }, () => false))
   return results
 }
 
@@ -95,34 +84,32 @@ export const solveHand = (numberCards, operators, sqrtCount = 0) => {
   for (const nums of numPerms) {
     for (const ops of opPerms) {
       for (const sqrtFlags of sqrtAssignments) {
-        let evalStr = ''
+        const tokens = []
         let displayStr = ''
 
         for (let i = 0; i < nums.length; i++) {
-          let val = nums[i].value
-          let displayVal = String(val)
+          const value = nums[i].value
+          let displayVal = String(value)
 
           if (sqrtFlags[i]) {
-            val = Math.sqrt(val)
-            displayVal = `√${nums[i].value}`
+            tokens.push({ type: 'sqrt' })
+            displayVal = `√${value}`
           }
 
-          evalStr += val
+          tokens.push({ type: 'number', value })
           displayStr += displayVal
 
           if (i < ops.length) {
-            let op = ops[i]
-            let displayOp = op
-            if (op === '×') op = '*'
-            if (op === '÷') op = '/'
-            evalStr += ` ${op} `
-            displayStr += ` ${displayOp} `
+            const op = ops[i]
+            tokens.push({ type: 'op', value: op })
+            displayStr += ` ${op} `
           }
         }
 
-        const res = safeEval(evalStr)
+        const evaluation = evaluateEquation(tokens)
 
-        if (res !== null) {
+        if (evaluation.valid) {
+          const res = evaluation.result
           const diff1 = Math.abs(res - 1)
           if (diff1 < bestLow.diff) {
             bestLow = { result: res, diff: diff1, equation: displayStr }
