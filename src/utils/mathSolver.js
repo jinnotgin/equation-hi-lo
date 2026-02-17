@@ -1,6 +1,6 @@
 // Utilities for the game logic
 
-import { evaluateEquation } from './equationEvaluator'
+import { evaluateEquation } from './equationEvaluator.js'
 
 export const SUITS = ['gold', 'silver', 'bronze', 'black']
 
