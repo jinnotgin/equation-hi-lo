@@ -5,7 +5,7 @@
     <!-- Lobby Screen -->
     <div v-if="gameStore.phase === 'LOBBY'" class="flex flex-col items-center gap-6 mt-6 px-4">
       <!-- Top row: two-column layout -->
-      <div class="flex gap-8 items-stretch max-w-5xl w-full">
+      <div class="flex flex-col lg:flex-row gap-8 items-stretch max-w-5xl w-full">
         <!-- Left: App Info / Branding -->
         <div
           class="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl p-8 flex flex-col justify-center"
@@ -39,9 +39,17 @@
 
         <!-- Right: Game Controls -->
         <div
-          class="bg-felt-dark p-8 rounded-xl shadow-2xl flex flex-col items-center gap-5 w-80 shrink-0"
+          class="bg-felt-dark p-8 rounded-xl shadow-2xl flex flex-col items-center gap-5 w-full lg:w-80 shrink-0"
         >
-          <h3 class="text-lg font-bold text-gold tracking-wider">New Game</h3>
+          <div class="w-full flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gold tracking-wider">New Game</h3>
+            <!-- <button
+              @click="showSettingsDialog = true"
+              class="px-3 py-1 rounded-md border border-slate-600 text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-gold hover:border-gold transition-colors"
+            >
+              Settings
+            </button> -->
+          </div>
 
           <label class="text-sm font-bold text-slate-300 uppercase tracking-wide"
             >AI Opponents</label
@@ -87,8 +95,33 @@
             {{ selectedRounds === 0 ? 'Elimination mode' : `${selectedRounds} rounds` }}
           </p>
 
+          <div class="w-full rounded-lg border border-slate-700 bg-slate-900/40 p-3">
+            <div class="flex items-start justify-between gap-3.5">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                  AI Behavior
+                </p>
+                <p class="text-xs mt-1 text-slate-400">
+                  {{
+                    gameStore.aiMistakesEnabled
+                      ? 'Human-like AI with occasional missteps.'
+                      : 'AI always makes the most optimal move.'
+                  }}
+                </p>
+              </div>
+              <button
+                @click="showSettingsDialog = true"
+                class="px-2.5 py-1 rounded-md border border-slate-600 text-[10px] font-bold uppercase tracking-wider text-slate-200 hover:text-gold hover:border-gold transition-colors"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+
           <button
-            @click="gameStore.initGame(selectedAiCount, selectedRounds)"
+            @click="
+              gameStore.initGame(selectedAiCount, selectedRounds, gameStore.aiMistakesEnabled)
+            "
             class="bg-gold text-black font-bold px-10 py-3 rounded-lg hover:bg-yellow-400 text-lg tracking-wider shadow-lg transition-transform hover:scale-105 mt-2 w-full"
           >
             ▶ Start Game
@@ -198,6 +231,69 @@
             >Gemini 3 Pro</a
           >
         </p>
+      </div>
+    </div>
+
+    <div
+      v-if="showSettingsDialog && gameStore.phase === 'LOBBY'"
+      class="fixed inset-0 bg-black/80 z-[80] flex items-center justify-center p-4"
+      @click.self="showSettingsDialog = false"
+    >
+      <div class="w-full max-w-xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-gold text-lg font-bold tracking-wider">Settings</h3>
+          <button
+            @click="showSettingsDialog = false"
+            class="text-slate-300 hover:text-white text-xl leading-none"
+            aria-label="Close settings"
+          >
+            ×
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-4">Adjust settings before starting a new game.</p>
+
+        <div class="rounded-lg border border-slate-700 bg-slate-800/70 p-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-bold text-white">AI makes mistakes</p>
+              <p class="text-xs text-slate-400 mt-1">
+                When on, AI opponents play more like humans - with personality and occasional
+                mistakes. When off, AI always makes the optimal move.
+              </p>
+            </div>
+            <button
+              @click="gameStore.setAiMistakesEnabled(!gameStore.aiMistakesEnabled)"
+              class="relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border transition-colors"
+              :class="
+                gameStore.aiMistakesEnabled
+                  ? 'bg-emerald-600 border-emerald-400'
+                  : 'bg-slate-700 border-slate-500'
+              "
+              role="switch"
+              :aria-label="
+                gameStore.aiMistakesEnabled
+                  ? 'Disable AI mistakes and personality variation'
+                  : 'Enable AI mistakes and personality variation'
+              "
+              :aria-checked="gameStore.aiMistakesEnabled ? 'true' : 'false'"
+            >
+              <span
+                class="absolute top-1 left-1 inline-block h-6 w-6 rounded-full bg-white shadow-sm transition-transform"
+                :class="gameStore.aiMistakesEnabled ? 'translate-x-6' : 'translate-x-0'"
+              ></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 flex justify-end">
+          <button
+            @click="showSettingsDialog = false"
+            class="px-5 py-2 rounded-md bg-gold text-black font-bold hover:bg-yellow-400 transition-colors"
+          >
+            Done
+          </button>
+        </div>
       </div>
     </div>
 
@@ -751,13 +847,13 @@
               v-if="gameStore.lowTiebreakExplanation"
               class="text-amber-200/80 text-sm font-mono"
             >
-              LOW: {{ gameStore.lowTiebreakExplanation }}
+              LOW: {{ lowTiebreakDisplay }}
             </div>
             <div
               v-if="gameStore.highTiebreakExplanation"
               class="text-amber-200/80 text-sm font-mono"
             >
-              HIGH: {{ gameStore.highTiebreakExplanation }}
+              HIGH: {{ highTiebreakDisplay }}
             </div>
           </div>
           <!-- Winner message -->
@@ -1000,6 +1096,7 @@ const gameStore = useGameStore()
 const selectedAiCount = ref(3)
 const selectedRounds = ref(10)
 const showRules = ref(false)
+const showSettingsDialog = ref(false)
 const rulesSection = ref(null)
 const isBuilderMinimized = ref(false)
 
@@ -1039,6 +1136,66 @@ const maxRaise = computed(() => {
 const canRaise = computed(() => maxRaise.value >= 10)
 
 const sortedHand = computed(() => me.value.hand || [])
+const TIE_EPSILON = 1e-6
+
+const sideDiff = (row, side) => {
+  if (side === 'LOW') {
+    if (row.declaration === 'LOW') return row.diff
+    if (row.declaration === 'SWING') return row.lowDiff
+    return null
+  }
+  if (row.declaration === 'HIGH') return row.diff
+  if (row.declaration === 'SWING') return row.highDiff
+  return null
+}
+
+const tiedNamesForSide = (rows, side) => {
+  const candidates = rows
+    .map((row) => ({ name: row.name, diff: sideDiff(row, side) }))
+    .filter((row) => typeof row.diff === 'number')
+  if (candidates.length < 2) return []
+
+  const bestDiff = Math.min(...candidates.map((row) => row.diff))
+  const tied = candidates
+    .filter((row) => Math.abs(row.diff - bestDiff) < TIE_EPSILON)
+    .map((row) => row.name)
+
+  return tied.length > 1 ? tied : []
+}
+
+const formatNameList = (names) => {
+  if (names.length === 0) return ''
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+}
+
+const showdownTieNames = computed(() => {
+  const rows = gameStore.showdownResults || []
+  return {
+    LOW: tiedNamesForSide(rows, 'LOW'),
+    HIGH: tiedNamesForSide(rows, 'HIGH'),
+  }
+})
+
+const lowTiePlayersText = computed(() => formatNameList(showdownTieNames.value.LOW))
+const highTiePlayersText = computed(() => formatNameList(showdownTieNames.value.HIGH))
+
+const lowTiebreakDisplay = computed(() => {
+  if (!gameStore.lowTiebreakExplanation) return ''
+  if (lowTiePlayersText.value) {
+    return `Tie between ${lowTiePlayersText.value}. ${gameStore.lowTiebreakExplanation}`
+  }
+  return gameStore.lowTiebreakExplanation
+})
+
+const highTiebreakDisplay = computed(() => {
+  if (!gameStore.highTiebreakExplanation) return ''
+  if (highTiePlayersText.value) {
+    return `Tie between ${highTiePlayersText.value}. ${gameStore.highTiebreakExplanation}`
+  }
+  return gameStore.highTiebreakExplanation
+})
 
 // function confirmExit removed
 
@@ -1096,6 +1253,8 @@ watch(
 )
 
 onMounted(() => {
+  gameStore.loadSettings()
+
   // Preload all possible avatars for a smooth experience
   const avatarsToPreload = ['You', ...AI_NAMES]
   avatarsToPreload.forEach((name) => {

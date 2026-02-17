@@ -22,6 +22,31 @@ const TIER_WIN_PROB = { elite: 0.85, strong: 0.65, decent: 0.4, weak: 0.2, junk:
 
 // ── Numeric rank for tier comparison ──
 const TIER_RANK = { elite: 5, strong: 4, decent: 3, weak: 2, junk: 1 }
+const AI_MISTAKES_SETTING_KEY = 'equationHiLo.settings.aiMistakesEnabled'
+const NEUTRAL_AI_PERSONALITY = { riskLevel: 0.5, carelessnessLevel: 0.5 }
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function randomCentered(scale) {
+  return (Math.random() * 2 - 1) * scale
+}
+
+function createAIPersonality() {
+  return {
+    riskLevel: clamp(0.5 + randomCentered(0.1), 0.4, 0.6),
+    carelessnessLevel: clamp(0.5 + randomCentered(0.1), 0.4, 0.6),
+  }
+}
+
+function getAIPersonality(ai) {
+  if (!ai?.aiPersonality) return NEUTRAL_AI_PERSONALITY
+  return {
+    riskLevel: clamp(ai.aiPersonality.riskLevel ?? 0.5, 0.4, 0.6),
+    carelessnessLevel: clamp(ai.aiPersonality.carelessnessLevel ?? 0.5, 0.4, 0.6),
+  }
+}
 
 /**
  * Classify a diff into a tier using the appropriate threshold table.
@@ -138,9 +163,43 @@ export const useGameStore = defineStore('game', {
     announcement: null, // { msg: string, visible: boolean } for central overlay
     actionLog: [],
     collectingAnte: false, // New state for ante animation
+    aiMistakesEnabled: true,
   }),
 
   actions: {
+    loadSettings() {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) {
+          this.aiMistakesEnabled = true
+          return
+        }
+        const raw = window.localStorage.getItem(AI_MISTAKES_SETTING_KEY)
+        if (raw === null) {
+          this.aiMistakesEnabled = true
+          return
+        }
+        if (raw === 'true' || raw === 'false') {
+          this.aiMistakesEnabled = raw === 'true'
+          return
+        }
+        const parsed = JSON.parse(raw)
+        this.aiMistakesEnabled = typeof parsed === 'boolean' ? parsed : true
+      } catch {
+        this.aiMistakesEnabled = true
+      }
+    },
+
+    setAiMistakesEnabled(enabled) {
+      this.aiMistakesEnabled = !!enabled
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(AI_MISTAKES_SETTING_KEY, String(this.aiMistakesEnabled))
+        }
+      } catch {
+        // Ignore storage failures and keep in-memory value.
+      }
+    },
+
     showAnnouncement(msg) {
       return new Promise((resolve) => {
         this.announcement = { msg, visible: true }
@@ -178,9 +237,10 @@ export const useGameStore = defineStore('game', {
       else if (action === 'fold') this.logAction(`${label} folded.`)
     },
 
-    initGame(numAi, rounds) {
+    initGame(numAi, rounds, aiMistakesEnabled) {
       if (numAi !== undefined) this.numAiPlayers = numAi
       if (rounds !== undefined) this.maxRounds = rounds
+      if (aiMistakesEnabled !== undefined) this.setAiMistakesEnabled(aiMistakesEnabled)
       this.roundNumber = 0
       this.currentTurnIndex = -1
       this.actionLog = []
@@ -203,6 +263,7 @@ export const useGameStore = defineStore('game', {
           role: null,
           declaration: null,
           lastAction: null,
+          aiPersonality: null,
         },
       ]
       for (let i = 0; i < this.numAiPlayers; i++) {
@@ -219,6 +280,9 @@ export const useGameStore = defineStore('game', {
           role: null,
           declaration: null,
           lastAction: null,
+          aiPersonality: this.aiMistakesEnabled
+            ? createAIPersonality()
+            : { ...NEUTRAL_AI_PERSONALITY },
         })
       }
       this.dealerIndex = this.dealerIndex % totalPlayers
@@ -323,6 +387,47 @@ export const useGameStore = defineStore('game', {
       this.dealInitialCards()
     },
 
+    getNoisyDiff(diff, carelessnessLevel, shouldAddNoise) {
+      if (!shouldAddNoise) return diff
+      const noisePct = 0.04 + carelessnessLevel * 0.04
+      return Math.max(0, diff * (1 + randomCentered(noisePct)))
+    },
+
+    chooseAIDiscardOp(player) {
+      const hasPlus = player.ops.includes('+')
+      const hasMinus = player.ops.includes('-')
+      if (hasPlus && !hasMinus) return '+'
+      if (hasMinus && !hasPlus) return '-'
+
+      const numbers = player.hand.filter((c) => c.type === 'number')
+      const sqrtCount = player.hand.filter((c) => c.type === 'sqrt').length
+      const evaluateDiscard = (discardOp) => {
+        const projectedOps = [...player.ops]
+        const idx = projectedOps.indexOf(discardOp)
+        if (idx > -1) projectedOps.splice(idx, 1)
+        projectedOps.push('×')
+        const sol = solveHand(numbers, projectedOps, sqrtCount)
+        const lowTier = classifyTier(sol.low.diff, LOW_THRESHOLDS)
+        const highTier = classifyTier(sol.high.diff, HIGH_THRESHOLDS)
+        const tierScore = Math.max(TIER_RANK[lowTier], TIER_RANK[highTier])
+        const lowQuality = 1 / (1 + sol.low.diff)
+        const highQuality = 1 / (1 + sol.high.diff / HIGH_LENIENCY)
+        const swingQuality = lowQuality * highQuality
+        return tierScore * 10 + Math.max(lowQuality, highQuality, swingQuality * 1.2)
+      }
+
+      const plusScore = evaluateDiscard('+')
+      const minusScore = evaluateDiscard('-')
+      const betterOp = plusScore >= minusScore ? '+' : '-'
+      const worseOp = betterOp === '+' ? '-' : '+'
+
+      if (!this.aiMistakesEnabled) return betterOp
+
+      const { carelessnessLevel } = getAIPersonality(player)
+      const mistakeChance = clamp(0.06 + carelessnessLevel * 0.12, 0.08, 0.14)
+      return Math.random() < mistakeChance ? worseOp : betterOp
+    },
+
     drawCard(player, isFaceDown = false) {
       if (this.deck.length === 0) return
       let card = this.deck.pop()
@@ -373,8 +478,8 @@ export const useGameStore = defineStore('game', {
             player.ops.push('×')
           }
         } else {
-          // AI always discards + first (arbitrary choice)
-          const removeIdx = player.ops.findIndex((o) => o === '+' || o === '-')
+          const opToDiscard = this.chooseAIDiscardOp(player)
+          const removeIdx = player.ops.indexOf(opToDiscard)
           if (removeIdx > -1) player.ops.splice(removeIdx, 1)
           player.ops.push('×')
         }
@@ -530,10 +635,16 @@ export const useGameStore = defineStore('game', {
       const numbers = ai.hand.filter((c) => c.type === 'number')
       const sqrtCount = ai.hand.filter((c) => c.type === 'sqrt').length
       const solution = solveHand(numbers, ai.ops, sqrtCount)
+      const mistakesEnabled = this.aiMistakesEnabled
+      const personality = getAIPersonality(ai)
+      const riskBias = mistakesEnabled ? personality.riskLevel - 0.5 : 0
+      const carelessnessLevel = mistakesEnabled ? personality.carelessnessLevel : 0
 
       // ── 2. Classify both sides ──
-      const lowTier = classifyTier(solution.low.diff, LOW_THRESHOLDS)
-      const highTier = classifyTier(solution.high.diff, HIGH_THRESHOLDS)
+      const lowTierDiff = this.getNoisyDiff(solution.low.diff, carelessnessLevel, mistakesEnabled)
+      const highTierDiff = this.getNoisyDiff(solution.high.diff, carelessnessLevel, mistakesEnabled)
+      const lowTier = classifyTier(lowTierDiff, LOW_THRESHOLDS)
+      const highTier = classifyTier(highTierDiff, HIGH_THRESHOLDS)
 
       // ── 3. Estimate same-side competition ──
       const activeOpponents = this.players.filter((p) => !p.folded && p.id !== ai.id).length
@@ -580,80 +691,116 @@ export const useGameStore = defineStore('game', {
       // Pot odds: what fraction of the total pot is your call?
       // Lower = better odds = more reason to stay in.
       const potOddsRatio = toCall / (this.pot + toCall + 0.01)
-      const cheapCall = potOddsRatio < 0.25 // getting 3:1 or better
-      const decentOdds = potOddsRatio < 0.38 // reasonable odds
+      const cheapCallCutoff = clamp(0.25 + riskBias * 0.12, 0.22, 0.28)
+      const decentOddsCutoff = clamp(0.38 + riskBias * 0.14, 0.34, 0.42)
+      const cheapCall = potOddsRatio < cheapCallCutoff // getting roughly 3:1 or better
+      const decentOdds = potOddsRatio < decentOddsCutoff // reasonable odds
 
       let action = 'fold'
-      const roll = Math.random()
-
-      if (toCall === 0) {
-        // Free to check — NEVER fold
-        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.55) {
-          // was 0.4
-          action = 'raise'
-        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.9) {
-          // was 0.85
-          action = 'raise'
-        } else {
-          action = 'check'
-        }
-      } else if (bestEv > 0) {
-        // Positive EV — lean toward calling or raising
-        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.5) {
-          // was 0.3
-          action = 'raise'
-        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.92) {
-          // was 0.9
-          action = 'raise'
-        } else {
+      if (!mistakesEnabled) {
+        if (toCall === 0) {
+          if (
+            !ai.hasRaisedThisRound &&
+            (bestTier === 'elite' || (bestTier === 'strong' && bestEv > this.pot * 0.08))
+          ) {
+            action = 'raise'
+          } else {
+            action = 'check'
+          }
+        } else if (bestEv > 0) {
+          const shouldRaise =
+            !ai.hasRaisedThisRound &&
+            (bestTier === 'elite' || (bestTier === 'strong' && cheapCall))
+          action = shouldRaise ? 'raise' : 'call'
+        } else if (bestTier === 'elite') {
           action = 'call'
+        } else if (bestTier === 'strong') {
+          action = decentOdds ? 'call' : 'fold'
+        } else if (bestTier === 'decent') {
+          action = isRound1 ? (cheapCall || decentOdds ? 'call' : 'fold') : cheapCall ? 'call' : 'fold'
+        } else if (bestTier === 'weak') {
+          action = isRound1 && cheapCall ? 'call' : 'fold'
+        } else {
+          action = 'fold'
         }
       } else {
-        // Negative EV — use pot odds + tier + round context to decide.
-        // Key insight: negative EV doesn't mean auto-fold.
-        // In Round 1, you're paying to see the 4th card (implied odds).
-        // Good pot odds also justify calling with marginal hands.
+        const roll = clamp(
+          Math.random() + riskBias * 0.18 + randomCentered(0.05 * carelessnessLevel),
+          0,
+          1,
+        )
 
-        if (bestTier === 'elite') {
-          action = 'call' // Elite always stays — massive implied odds
-        } else if (bestTier === 'strong') {
-          // Strong hands call most of the time, fold only at terrible odds
-          action = decentOdds || roll > 0.4 ? 'call' : 'fold'
-        } else if (bestTier === 'decent') {
-          if (isRound1) {
-            // Round 1: 4th card can transform the hand — be speculative
-            if (cheapCall) {
-              action = 'call' // Always call with good pot odds
-            } else if (decentOdds) {
-              action = roll > 0.4 ? 'call' : 'fold' // 60% call
-            } else {
-              action = roll > 0.55 ? 'call' : 'fold' // 35% call
-            }
+        if (toCall === 0) {
+          // Free to check — NEVER fold
+          if (
+            bestTier === 'elite' &&
+            !ai.hasRaisedThisRound &&
+            roll > clamp(0.55 - riskBias * 0.2, 0.35, 0.75)
+          ) {
+            action = 'raise'
+          } else if (
+            bestTier === 'strong' &&
+            !ai.hasRaisedThisRound &&
+            roll > clamp(0.9 - riskBias * 0.08, 0.78, 0.95)
+          ) {
+            action = 'raise'
           } else {
-            // Round 2: hand is final, be more cautious
-            action = cheapCall && roll > 0.55 ? 'call' : 'fold' // 45% call
+            action = 'check'
           }
-        } else if (bestTier === 'weak') {
-          // Weak hands: only stay if it's Round 1 AND cheap
-          if (isRound1 && cheapCall && roll > 0.6) {
-            action = 'call' // 40% speculative call
+        } else if (bestEv > 0) {
+          // Positive EV — lean toward calling or raising
+          if (
+            bestTier === 'elite' &&
+            !ai.hasRaisedThisRound &&
+            roll > clamp(0.5 - riskBias * 0.2, 0.32, 0.7)
+          ) {
+            action = 'raise'
+          } else if (
+            bestTier === 'strong' &&
+            !ai.hasRaisedThisRound &&
+            roll > clamp(0.92 - riskBias * 0.08, 0.8, 0.97)
+          ) {
+            action = 'raise'
+          } else {
+            action = 'call'
+          }
+        } else {
+          // Negative EV — use pot odds + tier + round context to decide.
+          if (bestTier === 'elite') {
+            action = 'call'
+          } else if (bestTier === 'strong') {
+            action = decentOdds || roll > 0.4 ? 'call' : 'fold'
+          } else if (bestTier === 'decent') {
+            if (isRound1) {
+              if (cheapCall) {
+                action = 'call'
+              } else if (decentOdds) {
+                action = roll > 0.4 ? 'call' : 'fold'
+              } else {
+                action = roll > 0.55 ? 'call' : 'fold'
+              }
+            } else {
+              action = cheapCall && roll > 0.55 ? 'call' : 'fold'
+            }
+          } else if (bestTier === 'weak') {
+            action = isRound1 && cheapCall && roll > 0.6 ? 'call' : 'fold'
           } else {
             action = 'fold'
           }
-        } else {
-          // Junk: always fold when facing a bet
-          action = 'fold'
         }
       }
 
       // ── 8. Execute action (unchanged) ──
       if (action === 'raise') {
+        const eliteRaiseFactor = clamp(0.3 + riskBias * 0.08, 0.24, 0.36)
+        const strongRaiseFactor = clamp(0.15 + riskBias * 0.06, 0.12, 0.18)
         const raiseBase =
           bestTier === 'elite'
-            ? Math.max(10, Math.floor(this.pot * 0.3)) // was 0.5
-            : Math.max(10, Math.floor(this.pot * 0.15)) // was 0.3
-        const raiseAmt = raiseBase + Math.floor(Math.random() * 2) * 5 // was * 10
-        const maxRaise = Math.floor(ai.chips * 0.25) // was 0.4
+            ? Math.max(10, Math.floor(this.pot * eliteRaiseFactor))
+            : Math.max(10, Math.floor(this.pot * strongRaiseFactor))
+        const raiseAmt = raiseBase + (mistakesEnabled ? Math.floor(Math.random() * 2) * 5 : 0)
+        const maxRaiseShare = clamp(0.25 + riskBias * 0.08, 0.2, 0.3)
+        const maxRaise = Math.floor(ai.chips * maxRaiseShare)
         const finalRaise = Math.max(10, Math.round(Math.min(raiseAmt, maxRaise) / 10) * 10)
 
         const maxAdditional = this.roundBettingCap - ai.totalWagered
@@ -771,13 +918,18 @@ export const useGameStore = defineStore('game', {
       this.players
         .filter((p) => !p.isHuman && !p.folded)
         .forEach((ai) => {
+          const mistakesEnabled = this.aiMistakesEnabled
+          const personality = getAIPersonality(ai)
+          const carelessnessLevel = mistakesEnabled ? personality.carelessnessLevel : 0
           const nums = ai.hand.filter((c) => c.type === 'number')
           const sqrtCount = ai.hand.filter((c) => c.type === 'sqrt').length
           const sol = solveHand(nums, ai.ops, sqrtCount)
 
           // Classify both sides
-          const lowTier = classifyTier(sol.low.diff, LOW_THRESHOLDS)
-          const highTier = classifyTier(sol.high.diff, HIGH_THRESHOLDS)
+          const lowTierDiff = this.getNoisyDiff(sol.low.diff, carelessnessLevel, mistakesEnabled)
+          const highTierDiff = this.getNoisyDiff(sol.high.diff, carelessnessLevel, mistakesEnabled)
+          const lowTier = classifyTier(lowTierDiff, LOW_THRESHOLDS)
+          const highTier = classifyTier(highTierDiff, HIGH_THRESHOLDS)
 
           // Estimate same-side opponents
           const activeOpponents = this.players.filter((p) => !p.folded && p.id !== ai.id).length
@@ -787,9 +939,15 @@ export const useGameStore = defineStore('game', {
           const highWinProb = estimateWinProb(highTier, estPerSide)
 
           // EV comparison (no cost — declaration is free, just comparing payoff)
-          const evLow = lowWinProb * (this.pot / 2)
-          const evHigh = highWinProb * (this.pot / 2)
-          const evSwing = lowWinProb * highWinProb * this.pot
+          let evLow = lowWinProb * (this.pot / 2)
+          let evHigh = highWinProb * (this.pot / 2)
+          let evSwing = lowWinProb * highWinProb * this.pot
+          if (mistakesEnabled) {
+            const evNoiseScale = 0.02 + carelessnessLevel * 0.03
+            evLow += evLow * randomCentered(evNoiseScale)
+            evHigh += evHigh * randomCentered(evNoiseScale)
+            evSwing += evSwing * randomCentered(evNoiseScale)
+          }
 
           // Safety gate: both sides must be at least "strong" to attempt swing
           const bothSidesStrong =
