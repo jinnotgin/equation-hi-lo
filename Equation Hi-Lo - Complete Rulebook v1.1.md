@@ -98,18 +98,17 @@ When a player draws a × card from the deck (in any open card position):
 1. The × card is placed face-up in front of the player.
 2. The player draws **1 additional card** from the deck (must be a number card).
 3. The player **must discard** either their **+** or **−** card (player's choice). The × replaces the discarded operation as one of the player's three binary operators.
+4. **Limit:** A player may only possess **one** × operator at a time. If a second × is drawn, it is returned to the deck and a replacement card is drawn.
 
 ### Multiple Special Cards
 
-| Scenario                         | Handling                                                                                                                  |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **2 √ cards**                    | Draw 1 extra number for each √. No operations discarded. Player has: 4 numbers, 2 √ modifiers, +, −, ÷.                   |
-| **2 × cards**                    | Draw 1 extra number for each ×. Discard **both** + and −. Player has: 4 numbers, ×, ×, ÷.                                 |
-| **1 √ and 1 ×**                  | Draw 1 extra number for each. Discard either + or − for the ×. Player has: 4 numbers, 1 √ modifier, ×, ÷, and one of +/−. |
-| **3 × cards** _(extremely rare)_ | The 3rd × is ignored and the player draws the next card from the deck instead.                                            |
-| **3 √ cards**                    | Draw 1 extra number for each √. No discards. Player has: 4 numbers, 3 √ modifiers, +, −, ÷.                               |
+| Scenario        | Handling                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **2 √ cards**   | Draw 1 extra number for each √. No operations discarded. Player has: 4 numbers, 2 √ modifiers, +, −, ÷.                   |
+| **1 √ and 1 ×** | Draw 1 extra number for each. Discard either + or − for the ×. Player has: 4 numbers, 1 √ modifier, ×, ÷, and one of +/−. |
+| **3 √ cards**   | Draw 1 extra number for each √. No discards. Player has: 4 numbers, 3 √ modifiers, +, −, ÷.                               |
 
-> **Note:** When drawing extra cards due to × or √, if the extra draw itself is a × or √, apply the same special rules recursively. If this leads to an impossible state (e.g., needing to discard an operation card that has already been discarded), ignore the special card and draw the next card instead.
+> **Note:** The extra card drawn as a result of a × or √ **must be a number card**. If the next card in the deck is another special card, it is set aside and the next available number card is drawn instead.
 
 ---
 
@@ -314,10 +313,10 @@ Where `○` represents one of the 3 binary operations, and `[√]` is optionally
 
 These situations are rare but should be decided before starting:
 
-1. **Can √ be nested?** (e.g., √(√9) = √3 ≈ 1.732) — _Recommended: No. Each √ applies to exactly one number card._
+1. **Can √ be nested?** (e.g., √(√9) = √3 ≈ 1.732) - No. Each √ applies to exactly one number card.
 2. **√ of non-perfect squares:** Results in irrational numbers (e.g., √7 ≈ 2.6458). These are valid and computed to reasonable precision.
 3. **Swing bet ties:** If a swing bettor ties on one side, the standard tiebreaker (Section 10) determines the result. A tiebreaker win counts as a win for swing purposes.
-4. **Number of rounds:** Fixed number, timed session, or elimination-style? — _Agree before play._
+4. **Number of rounds:** Fixed number, timed session, or elimination-style? Agree before play.
 5. **Player count:** The deck supports roughly 2–8 players comfortably, depending on how many special cards are drawn.
 6. **Starting chip count:** Recommended 50–100 chips per player with an ante of 1–2 chips.
 
