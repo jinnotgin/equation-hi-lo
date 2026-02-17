@@ -204,7 +204,9 @@
       </div>
 
       <!-- Footer -->
-      <div class="mt-12 mb-8 text-center text-sm text-slate-400 font-mono tracking-wide">
+      <div
+        class="mt-12 mb-8 text-center text-base text-slate-400 font-mono tracking-wide font-semibold"
+      >
         <p class="mb-2">
           Created by
           <a
@@ -215,15 +217,22 @@
           >
           &copy; 2026
         </p>
-        <p class="text-xs opacity-80 uppercase tracking-widest">
-          Built using Agentic Engineering -
+        <p class="text-sm opacity-65 uppercase tracking-widest">
+          Built using Agentic Engineering •
           <a
             href="https://www.anthropic.com/news/claude-opus-4-6"
             target="_blank"
             class="hover:text-gold transition-colors border-b border-dotted border-slate-600 hover:border-gold"
             >Claude 4.6 Opus</a
           >
-          &amp;
+          •
+          <a
+            href="https://openai.com/index/introducing-gpt-5-3-codex/"
+            target="_blank"
+            class="hover:text-gold transition-colors border-b border-dotted border-slate-600 hover:border-gold"
+            >GPT 5.3 Codex</a
+          >
+          •
           <a
             href="https://blog.google/products-and-platforms/products/gemini/gemini-3/"
             target="_blank"
