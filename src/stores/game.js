@@ -7,6 +7,46 @@ export const AI_NAMES = ['Luna', 'Archie', 'Sage', 'Nova', 'Felix', 'Iris']
 const HIGH_SUIT_PRIORITY = { gold: 4, silver: 3, bronze: 2, black: 1 }
 const LOW_SUIT_PRIORITY = { black: 4, bronze: 3, silver: 2, gold: 1 }
 
+// ── Hand-strength thresholds ──
+const LOW_THRESHOLDS = { elite: 0.05, strong: 0.17, decent: 0.5, weak: 1.0 }
+const HIGH_LENIENCY = 4
+const HIGH_THRESHOLDS = {
+  elite: LOW_THRESHOLDS.elite * HIGH_LENIENCY,
+  strong: LOW_THRESHOLDS.strong * HIGH_LENIENCY,
+  decent: LOW_THRESHOLDS.decent * HIGH_LENIENCY,
+  weak: LOW_THRESHOLDS.weak * HIGH_LENIENCY,
+}
+
+// ── Estimated base win probability per tier (heads-up, one side) ──
+const TIER_WIN_PROB = { elite: 0.85, strong: 0.65, decent: 0.4, weak: 0.2, junk: 0.05 }
+
+// ── Numeric rank for tier comparison ──
+const TIER_RANK = { elite: 5, strong: 4, decent: 3, weak: 2, junk: 1 }
+
+/**
+ * Classify a diff into a tier using the appropriate threshold table.
+ */
+function classifyTier(diff, thresholds) {
+  if (diff <= thresholds.elite) return 'elite'
+  if (diff <= thresholds.strong) return 'strong'
+  if (diff <= thresholds.decent) return 'decent'
+  if (diff <= thresholds.weak) return 'weak'
+  return 'junk'
+}
+
+/**
+ * Estimate probability of winning one side given tier and number
+ * of opponents competing on the same side.
+ *
+ * 0 opponents → uncontested (near-certain win).
+ * Each additional opponent beyond 1 reduces win chance by ~25%.
+ */
+function estimateWinProb(tier, sameSideOpponents) {
+  if (sameSideOpponents <= 0) return 0.95 // uncontested
+  const base = TIER_WIN_PROB[tier]
+  return Math.min(0.95, base * Math.pow(0.75, sameSideOpponents - 1))
+}
+
 /**
  * Tiebreaker per §10:
  * - HIGH tie: compare highest-value number card; higher wins. Same value → suit (Gold > Silver > Bronze > Black)
@@ -457,8 +497,8 @@ export const useGameStore = defineStore('game', {
       }
 
       // Check if betting round is done (everyone called or checked)
-      const maxCurrentBet = Math.max(...this.players.map((p) => p.currentBet))
-      const allMatched = activePlayers.every((p) => p.currentBet === maxCurrentBet || p.chips === 0)
+      // const maxCurrentBet = Math.max(...this.players.map((p) => p.currentBet))
+      // const allMatched = activePlayers.every((p) => p.currentBet === maxCurrentBet || p.chips === 0)
 
       // Logic for "End of Betting Round" is tricky. Simplified:
       // If we cycled back to start and bets match, move on.
@@ -478,130 +518,123 @@ export const useGameStore = defineStore('game', {
     },
 
     aiMove(ai) {
-      // 1. Solve Hand
+      // ── 1. Solve hand ──
       const numbers = ai.hand.filter((c) => c.type === 'number')
       const sqrtCount = ai.hand.filter((c) => c.type === 'sqrt').length
-
       const solution = solveHand(numbers, ai.ops, sqrtCount)
 
-      // 2. Evaluate hand quality
-      // LOW (target 1) is easier to hit precisely, so we use tighter thresholds.
-      // HIGH thresholds = LOW thresholds × HIGH_LENIENCY_FACTOR
-      const HIGH_LENIENCY_FACTOR = 4
-      const LOW_THRESHOLDS = { elite: 0.05, strong: 0.17, decent: 0.5, weak: 1.0 }
-      const HIGH_THRESHOLDS = {
-        elite: LOW_THRESHOLDS.elite * HIGH_LENIENCY_FACTOR,
-        strong: LOW_THRESHOLDS.strong * HIGH_LENIENCY_FACTOR,
-        decent: LOW_THRESHOLDS.decent * HIGH_LENIENCY_FACTOR,
-        weak: LOW_THRESHOLDS.weak * HIGH_LENIENCY_FACTOR,
-      }
+      // ── 2. Classify both sides ──
+      const lowTier = classifyTier(solution.low.diff, LOW_THRESHOLDS)
+      const highTier = classifyTier(solution.high.diff, HIGH_THRESHOLDS)
 
-      const bestSide = solution.low.diff <= solution.high.diff ? 'LOW' : 'HIGH'
-      const bestRawDiff = Math.min(solution.low.diff, solution.high.diff)
-      const t = bestSide === 'LOW' ? LOW_THRESHOLDS : HIGH_THRESHOLDS
+      // ── 3. Estimate same-side competition ──
+      // During betting, declarations haven't happened yet.
+      // Heuristic: assume opponents split roughly evenly between LOW and HIGH.
+      const activeOpponents = this.players.filter((p) => !p.folded && p.id !== ai.id).length
+      const estPerSide = Math.max(1, Math.ceil(activeOpponents / 2))
 
-      // Classify hand into tier
-      let tier
-      if (bestRawDiff <= t.elite) tier = 'elite'
-      else if (bestRawDiff <= t.strong) tier = 'strong'
-      else if (bestRawDiff <= t.decent) tier = 'decent'
-      else if (bestRawDiff <= t.weak) tier = 'weak'
-      else tier = 'junk'
+      // ── 4. Win probabilities ──
+      const isRound1 = this.phase === 'ROUND_1'
+      const improvementBonus = isRound1 ? 0.08 : 0 // 4th card may improve hand
+      const lowWinProb = Math.min(0.95, estimateWinProb(lowTier, estPerSide) + improvementBonus)
+      const highWinProb = Math.min(0.95, estimateWinProb(highTier, estPerSide) + improvementBonus)
 
-      // 3. Betting Context
+      // ── 5. Expected value for each strategy ──
+      // single-side competes for pot/2; swing competes for full pot
+      // but swing requires winning BOTH sides (joint probability).
       const currentTableBet = Math.max(...this.players.map((p) => p.currentBet))
       const toCall = currentTableBet - ai.currentBet
-      const costRatio = toCall / (ai.chips + 0.1) // How expensive is this call relative to stack
-      const isRound1 = this.phase === 'ROUND_1'
+      const potAfterCall = this.pot + toCall
 
-      // 4. Decide action based on tier and context
+      const evLow = lowWinProb * (potAfterCall / 2) - toCall
+      const evHigh = highWinProb * (potAfterCall / 2) - toCall
+      const evSwing = lowWinProb * highWinProb * potAfterCall - toCall
+
+      // ── 6. Pick best strategy ──
+      const bestEv = Math.max(evLow, evHigh, evSwing)
+
+      // Swing requires both sides to be at least "strong" as a safety gate
+      const bothSidesStrong =
+        TIER_RANK[lowTier] >= TIER_RANK['strong'] && TIER_RANK[highTier] >= TIER_RANK['strong']
+
+      let bestTier
+      if (bestEv === evSwing && bothSidesStrong) {
+        // Swing — betting aggression governed by the WEAKER side (bottleneck)
+        bestTier = TIER_RANK[lowTier] <= TIER_RANK[highTier] ? lowTier : highTier
+      } else if (evLow >= evHigh) {
+        bestTier = lowTier
+      } else {
+        bestTier = highTier
+      }
+
+      // ── 7. Decide action ──
       let action = 'fold'
       const roll = Math.random()
 
-      if (tier === 'elite') {
-        // Very aggressive
-        if (!ai.hasRaisedThisRound && roll > 0.3) {
+      if (toCall === 0) {
+        // Free to check — NEVER fold when checking costs nothing
+        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.4) {
+          action = 'raise'
+        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.85) {
+          action = 'raise'
+        } else {
+          action = 'check'
+        }
+      } else if (bestEv > 0) {
+        // Positive EV — lean toward calling or raising
+        if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.3) {
+          action = 'raise'
+        } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.9) {
           action = 'raise'
         } else {
           action = 'call'
         }
-      } else if (tier === 'strong') {
-        // Mostly call, context-aware
-        if (!ai.hasRaisedThisRound && roll > 0.9) {
-          action = 'raise'
-        } else if (toCall === 0) {
-          action = 'check'
-        } else if (costRatio < 0.15) {
-          action = 'call' // Cheap — always call
-        } else if (costRatio < 0.3) {
-          action = roll > 0.2 ? 'call' : 'fold' // 80% call, 20% fold
-        } else {
-          action = roll > 0.5 ? 'call' : 'fold' // 50/50 when expensive
-        }
-      } else if (tier === 'decent') {
-        // Call only if cheap, fold into raises
-        if (toCall === 0) {
-          action = 'check'
-        } else if (isRound1 && costRatio < 0.15) {
-          action = 'call' // Round 1: call if cheap (hand may improve)
-        } else if (!isRound1 && costRatio < 0.08) {
-          action = 'call' // Round 2: only call if very cheap
-        } else {
-          action = 'fold'
-        }
-      } else if (tier === 'weak') {
-        // Check if free, otherwise fold
-        if (toCall === 0) {
-          action = 'check'
-        } else if (roll > 0.95 && costRatio < 0.05) {
-          action = 'call' // 5% hero-call if basically free
-        } else {
-          action = 'fold'
-        }
       } else {
-        // JUNK HAND: Check if free, otherwise always fold
-        if (toCall === 0) {
-          action = 'check'
+        // Negative EV — lean toward folding, with tier-based exceptions
+        if (bestTier === 'elite') {
+          action = 'call' // Elite always stays — implied odds, pot may grow
+        } else if (bestTier === 'strong' && roll > 0.6) {
+          action = 'call' // 40% hero-call
+        } else if (bestTier === 'decent' && isRound1 && roll > 0.8) {
+          action = 'call' // 20% speculative call in R1 (hand may improve)
         } else {
           action = 'fold'
         }
       }
 
-      // 5. Execute Action
+      // ── 8. Execute action ──
       if (action === 'raise') {
-        // Elite raises bigger
-        const raiseAmt =
-          tier === 'elite'
-            ? 30 + Math.floor(Math.random() * 3) * 10
-            : 20 + Math.floor(Math.random() * 2) * 10
+        // Scale raise with pot size, cap at 40% of stack
+        const raiseBase =
+          bestTier === 'elite'
+            ? Math.max(20, Math.floor(this.pot * 0.5)) // ~50% pot
+            : Math.max(10, Math.floor(this.pot * 0.3)) // ~30% pot
+        const raiseAmt = raiseBase + Math.floor(Math.random() * 2) * 10
+        const maxRaise = Math.floor(ai.chips * 0.4)
+        const finalRaise = Math.min(raiseAmt, maxRaise)
 
         const maxAdditional = this.roundBettingCap - ai.totalWagered
-        // Ensure we can afford it and it's under cap
-        if (ai.chips >= toCall + raiseAmt && toCall + raiseAmt <= maxAdditional) {
-          this.placeBet(ai, toCall + raiseAmt)
+        if (ai.chips >= toCall + finalRaise && toCall + finalRaise <= maxAdditional) {
+          this.placeBet(ai, toCall + finalRaise)
           ai.hasRaisedThisRound = true
           this.lastAggressorIndex = ai.id
-          ai.lastAction = `Raise $${raiseAmt}`
+          ai.lastAction = `Raise $${finalRaise}`
         } else {
-          // Fallback to call if raise fails
-          if (ai.chips >= toCall) this.placeBet(ai, toCall)
-          else this.placeBet(ai, ai.chips)
-          ai.lastAction = toCall === 0 ? 'Check' : `Call $${toCall}`
+          // Fallback to call if raise doesn't fit
+          const callAmt = Math.min(toCall, ai.chips)
+          this.placeBet(ai, callAmt)
+          ai.lastAction = toCall === 0 ? 'Check' : `Call $${callAmt}`
         }
       } else if (action === 'call' || action === 'check') {
-        if (ai.chips >= toCall) this.placeBet(ai, toCall)
-        else this.placeBet(ai, ai.chips) // All in
-        ai.lastAction = toCall === 0 ? 'Check' : `Call $${toCall}`
+        const callAmt = Math.min(toCall, ai.chips)
+        this.placeBet(ai, callAmt)
+        ai.lastAction = toCall === 0 ? 'Check' : `Call $${callAmt}`
       } else {
-        ai.folded = true
-        ai.lastAction = 'Fold'
-        this.communityMsg = `${ai.name} Folded.` // Leaving this one? No, remove.
         ai.folded = true
         ai.lastAction = 'Fold'
         this.logAction(`${ai.name} folded.`)
       }
 
-      // Delay before passing turn so user sees the action/result
       setTimeout(() => {
         this.nextTurn()
       }, 1500)
@@ -695,11 +728,36 @@ export const useGameStore = defineStore('game', {
           const nums = ai.hand.filter((c) => c.type === 'number')
           const sqrtCount = ai.hand.filter((c) => c.type === 'sqrt').length
           const sol = solveHand(nums, ai.ops, sqrtCount)
-          // Normalize: HIGH is 4x more forgiving than LOW
-          const HIGH_LENIENCY_FACTOR = 4
-          const normLowDiff = sol.low.diff
-          const normHighDiff = sol.high.diff / HIGH_LENIENCY_FACTOR
-          if (normLowDiff < normHighDiff) {
+
+          // Classify both sides
+          const lowTier = classifyTier(sol.low.diff, LOW_THRESHOLDS)
+          const highTier = classifyTier(sol.high.diff, HIGH_THRESHOLDS)
+
+          // Estimate same-side opponents
+          const activeOpponents = this.players.filter((p) => !p.folded && p.id !== ai.id).length
+          const estPerSide = Math.max(1, Math.ceil(activeOpponents / 2))
+
+          const lowWinProb = estimateWinProb(lowTier, estPerSide)
+          const highWinProb = estimateWinProb(highTier, estPerSide)
+
+          // EV comparison (no cost — declaration is free, just comparing payoff)
+          const evLow = lowWinProb * (this.pot / 2)
+          const evHigh = highWinProb * (this.pot / 2)
+          const evSwing = lowWinProb * highWinProb * this.pot
+
+          // Safety gate: both sides must be at least "strong" to attempt swing
+          const bothSidesStrong =
+            TIER_RANK[lowTier] >= TIER_RANK['strong'] && TIER_RANK[highTier] >= TIER_RANK['strong']
+
+          if (evSwing > evLow && evSwing > evHigh && bothSidesStrong) {
+            ai.declaration = 'SWING'
+            ai.lowResult = sol.low.result
+            ai.highResult = sol.high.result
+            ai.lowEqStr = sol.low.equation
+            ai.highEqStr = sol.high.equation
+            ai.finalResult = sol.low.result // display fallback
+            ai.equationStr = null
+          } else if (evLow >= evHigh) {
             ai.declaration = 'LOW'
             ai.finalResult = sol.low.result
             ai.equationStr = sol.low.equation
@@ -882,12 +940,7 @@ export const useGameStore = defineStore('game', {
           const result = typeof p.finalResult === 'number' ? p.finalResult : 0
           const diff = Math.abs(result - target)
           // For SWING, show both diffs
-          let lowDiff = null,
-            highDiff = null
-          if (p.declaration === 'SWING') {
-            lowDiff = Math.abs((p.lowResult || 0) - 1)
-            highDiff = Math.abs((p.highResult || 0) - 20)
-          }
+          // (Calculated inline below for return object)
           return {
             name: p.name,
             declaration: p.declaration,
