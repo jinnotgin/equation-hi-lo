@@ -612,10 +612,7 @@ export const useGameStore = defineStore('game', {
       player.currentBet += clamped
       player.totalWagered += clamped
       this.pot += clamped
-      player.totalWagered += clamped
-      this.pot += clamped
-      // this.communityMsg = `${player.name} bets ${amount}` // Remove
-      this.logAction(`${player.name} bets ${amount}`)
+      this.logAction(`${player.name} bets $${clamped}`)
     },
 
     async nextTurn() {
