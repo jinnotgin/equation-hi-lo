@@ -464,6 +464,12 @@
             <div class="mt-2 text-slate-400 text-base font-mono opacity-80">
               Round {{ gameStore.roundNumber }}
             </div>
+            <div
+              v-if="isAutoResolvingShowdown"
+              class="mt-4 rounded-full border border-gold/40 bg-black/50 px-4 py-1 text-sm font-bold uppercase tracking-wider text-gold"
+            >
+              Finalising showdown results...
+            </div>
           </div>
         </div>
 
@@ -1124,6 +1130,11 @@ const phaseLabel = computed(() => {
   return labels[gameStore.phase] || gameStore.phase
 })
 const isMyTurn = computed(() => gameStore.currentTurnIndex === 0)
+const isAutoResolvingShowdown = computed(() => {
+  if (gameStore.phase !== 'SHOWDOWN' || gameStore.winnerMsg) return false
+  const human = gameStore.players.find((p) => p.isHuman)
+  if (!human) return true
+})
 
 const maxBetOnTable = computed(() => Math.max(...gameStore.players.map((p) => p.currentBet), 0))
 const toCall = computed(() => maxBetOnTable.value - (me.value.currentBet || 0))

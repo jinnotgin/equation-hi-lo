@@ -218,6 +218,23 @@ export const useGameStore = defineStore('game', {
       })
     },
 
+    shouldAutoResolveShowdown() {
+      const human = this.players.find((p) => p.isHuman)
+      if (!human) return true
+      return human.folded || human.eliminated || !!human.declaration
+    },
+
+    async enterShowdown() {
+      this.precomputeAIDeclarations()
+      await this.showAnnouncement('Showdown!')
+      this.phase = 'SHOWDOWN'
+
+      if (this.shouldAutoResolveShowdown()) {
+        await new Promise((r) => setTimeout(r, 250))
+        this.evaluateShowdown()
+      }
+    },
+
     logAction(msg) {
       const time = new Date().toLocaleTimeString([], {
         hour12: false,
@@ -582,14 +599,7 @@ export const useGameStore = defineStore('game', {
           await this.dealFourthCard()
         } else {
           await new Promise((r) => setTimeout(r, 1000))
-          this.precomputeAIDeclarations()
-          await this.showAnnouncement('Showdown!')
-          this.phase = 'SHOWDOWN'
-          const human = this.players.find((p) => p.isHuman)
-          if (human && human.folded) {
-            await new Promise((r) => setTimeout(r, 1500))
-            this.evaluateShowdown()
-          }
+          await this.enterShowdown()
         }
         return
       }
@@ -870,14 +880,7 @@ export const useGameStore = defineStore('game', {
           return
         } else if (this.phase === 'ROUND_2') {
           await new Promise((r) => setTimeout(r, 1000))
-          this.precomputeAIDeclarations()
-          await this.showAnnouncement('Showdown!')
-          this.phase = 'SHOWDOWN'
-          const human = this.players.find((p) => p.isHuman)
-          if (human && human.folded) {
-            await new Promise((r) => setTimeout(r, 1500))
-            this.evaluateShowdown()
-          }
+          await this.enterShowdown()
           return
         }
       }
