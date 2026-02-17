@@ -119,7 +119,7 @@ export const useGameStore = defineStore('game', {
     deck: [],
     players: [], // 0 is Human, rest are AI
     pot: 0,
-    currentTurnIndex: 0,
+    currentTurnIndex: -1,
     dealerIndex: 0,
     phase: 'LOBBY', // LOBBY, ANTE, ROUND_1, DEAL_4, ROUND_2, SHOWDOWN, END, GAME_OVER
     minBet: 10,
@@ -170,10 +170,19 @@ export const useGameStore = defineStore('game', {
       this.actionLog.push({ time, msg })
     },
 
+    logPlayerAction(player, action, amount = 0) {
+      const label = player?.isHuman ? 'You' : player?.name || 'Player'
+      if (action === 'check') this.logAction(`${label} checked.`)
+      else if (action === 'call') this.logAction(`${label} called $${amount}.`)
+      else if (action === 'raise') this.logAction(`${label} raised $${amount}.`)
+      else if (action === 'fold') this.logAction(`${label} folded.`)
+    },
+
     initGame(numAi, rounds) {
       if (numAi !== undefined) this.numAiPlayers = numAi
       if (rounds !== undefined) this.maxRounds = rounds
       this.roundNumber = 0
+      this.currentTurnIndex = -1
       this.actionLog = []
       const totalPlayers = this.numAiPlayers + 1
 
@@ -258,6 +267,7 @@ export const useGameStore = defineStore('game', {
       this.phase = 'ANTE'
       this.logAction(`━━━ <strong>Round ${this.roundNumber}</strong> ━━━`)
       this.pot = 0
+      this.currentTurnIndex = -1
       this.currentBet = this.minBet
       this.winnerMsg = null
       this.showdownResults = null
@@ -652,23 +662,26 @@ export const useGameStore = defineStore('game', {
           ai.hasRaisedThisRound = true
           this.lastAggressorIndex = ai.id
           ai.lastAction = `Raise $${finalRaise}`
+          this.logPlayerAction(ai, 'raise', finalRaise)
           // Reset: everyone must respond to the raise
           this.actedSinceLastAction = [ai.id]
         } else {
           const callAmt = Math.min(toCall, ai.chips)
           this.placeBet(ai, callAmt)
           ai.lastAction = toCall === 0 ? 'Check' : `Call $${callAmt}`
+          this.logPlayerAction(ai, toCall === 0 ? 'check' : 'call', callAmt)
           this.actedSinceLastAction.push(ai.id)
         }
       } else if (action === 'call' || action === 'check') {
         const callAmt = Math.min(toCall, ai.chips)
         this.placeBet(ai, callAmt)
         ai.lastAction = toCall === 0 ? 'Check' : `Call $${callAmt}`
+        this.logPlayerAction(ai, toCall === 0 ? 'check' : 'call', callAmt)
         this.actedSinceLastAction.push(ai.id)
       } else {
         ai.folded = true
         ai.lastAction = 'Fold'
-        this.logAction(`${ai.name} folded.`)
+        this.logPlayerAction(ai, 'fold')
         this.actedSinceLastAction.push(ai.id)
       }
 
@@ -685,7 +698,6 @@ export const useGameStore = defineStore('game', {
       player.currentBet += clamped
       player.totalWagered += clamped
       this.pot += clamped
-      this.logAction(`${player.name} bets $${clamped}`)
     },
 
     async nextTurn() {
@@ -805,6 +817,7 @@ export const useGameStore = defineStore('game', {
 
     resetToLobby() {
       this.phase = 'LOBBY'
+      this.currentTurnIndex = -1
       this.winnerMsg = null
       this.showdownResults = null
       this.pendingDiscard = null
@@ -828,7 +841,7 @@ export const useGameStore = defineStore('game', {
         human.folded = true
         human.lastAction = 'Fold'
         // this.communityMsg = 'You Folded.' // Remove
-        this.logAction('You folded.')
+        this.logPlayerAction(human, 'fold')
         this.nextTurn()
       }
     },

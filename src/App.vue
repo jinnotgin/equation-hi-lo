@@ -1200,15 +1200,18 @@ const action = (type) => {
   } else if (type === 'call') {
     if (toCall.value === 0) {
       me.value.lastAction = 'Check'
+      gameStore.logPlayerAction(me.value, 'check')
     } else {
       me.value.lastAction = `Call $${toCall.value}`
       gameStore.placeBet(me.value, toCall.value)
+      gameStore.logPlayerAction(me.value, 'call', toCall.value)
     }
     gameStore.actedSinceLastAction.push(0)
     gameStore.nextTurn()
   } else if (type === 'raise') {
     me.value.lastAction = `Raise $${raiseAmount.value}`
     gameStore.placeBet(me.value, toCall.value + raiseAmount.value)
+    gameStore.logPlayerAction(me.value, 'raise', raiseAmount.value)
     gameStore.actedSinceLastAction = [0] // Reset on raise
     gameStore.lastAggressorIndex = 0
     gameStore.nextTurn()
