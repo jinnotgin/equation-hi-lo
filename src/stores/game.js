@@ -906,17 +906,34 @@ export const useGameStore = defineStore('game', {
             // Swing player wins both — takes entire pot
             sp.chips += this.pot
             const msg = `🎯 SWING! ${sp.name} wins both sides and takes the entire pot!`
-            this.showdownResults = active.map((p) => ({
-              name: p.name,
-              declaration: p.declaration,
-              result:
-                p.declaration === 'SWING'
-                  ? `L:${parseFloat(p.lowResult).toFixed(2)} H:${parseFloat(p.highResult).toFixed(2)}`
-                  : p.finalResult,
-              equation: p.equationStr || '(built manually)',
-              isLowWinner: p.id === sp.id,
-              isHighWinner: p.id === sp.id,
-            }))
+            this.showdownResults = active.map((p) => {
+              const target = p.declaration === 'LOW' || p.declaration === 'SWING' ? 1 : 20
+              const result = typeof p.finalResult === 'number' ? p.finalResult : 0
+              const diff = Math.abs(result - target)
+              return {
+                name: p.name,
+                declaration: p.declaration,
+                result: p.declaration === 'SWING' ? null : p.finalResult,
+                lowResult: p.declaration === 'SWING' ? p.lowResult : null,
+                highResult: p.declaration === 'SWING' ? p.highResult : null,
+                lowEqStr: p.lowEqStr || null,
+                highEqStr: p.highEqStr || null,
+                equation: p.equationStr || '(built manually)',
+                isLowWinner: p.id === sp.id,
+                isHighWinner: p.id === sp.id,
+                diff: p.declaration === 'SWING' ? null : parseFloat(diff.toFixed(4)),
+                lowDiff:
+                  p.declaration === 'SWING'
+                    ? parseFloat(Math.abs((p.lowResult || 0) - 1).toFixed(4))
+                    : null,
+                highDiff:
+                  p.declaration === 'SWING'
+                    ? parseFloat(Math.abs((p.highResult || 0) - 20).toFixed(4))
+                    : null,
+                hand: p.hand.filter((c) => c.type === 'number' || c.type === 'sqrt'),
+                ops: [...p.ops],
+              }
+            })
             this.winnerMsg = msg
             this.logAction(`🏆 <strong>${sp.name}</strong> SWING — wins entire pot ($${this.pot})!`)
             this.phase = 'END'
