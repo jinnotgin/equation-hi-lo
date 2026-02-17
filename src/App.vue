@@ -119,7 +119,7 @@
             </p>
           </div>
           <div>
-            <h4 class="text-gold font-bold text-sm mb-1">� Game Flow</h4>
+            <h4 class="text-gold font-bold text-sm mb-1">🃏 Game Flow</h4>
             <p>
               1. <strong>Deal:</strong> You get numbers and math operators (+, −, ÷). <br />2.
               <strong>Bet:</strong> Raise, call, or fold like poker. <br />3.
@@ -150,6 +150,10 @@
                 out. Last player standing wins.
               </p>
               <p>
+                &bull; <strong class="text-slate-300">Ante:</strong> Everyone pays an ante at the
+                start. It's dead money (doesn't count as a bet).
+              </p>
+              <p>
                 &bull; <strong class="text-slate-300">√ Card:</strong> Applies square root to the
                 <em>next</em> number in your equation.
               </p>
@@ -165,6 +169,7 @@
           </div>
         </div>
       </div>
+
       <div class="h-16"></div>
       <!-- Bottom padding spacer -->
     </div>
@@ -222,6 +227,18 @@
               'border-transparent': !(gameStore.currentTurnIndex === p.id && !gameStore.winnerMsg),
             }"
           >
+            <!-- Flying Chip Animation (Opponents - Moves to Center) -->
+            <div
+              v-if="gameStore.collectingAnte && !p.eliminated"
+              class="absolute top-1/2 left-1/2 w-8 h-8 z-50 pointer-events-none"
+              :style="getAnteStyle(p.id)"
+            >
+              <div
+                class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-yellow-300 shadow-xl flex items-center justify-center text-[10px] font-bold text-black animate-spin-slow"
+              >
+                $10
+              </div>
+            </div>
             <div class="relative">
               <div
                 class="w-16 h-16 rounded-full overflow-hidden border-4 bg-slate-800 shadow-lg mb-2 relative"
@@ -296,7 +313,7 @@
               </div>
               <!-- Bet Badge (Repositioned Below Cards) -->
               <div
-                v-if="p.currentBet > 0"
+                v-if="p.currentBet > 0 && !gameStore.collectingAnte"
                 class="absolute -bottom-10 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-3 py-0.5 rounded text-base text-gold shadow-lg font-bold whitespace-nowrap z-20 flex items-baseline gap-1"
               >
                 <span class="text-[10px] text-slate-400 uppercase">Bet</span>
@@ -338,9 +355,21 @@
             'border-transparent': !(isMyTurn && !gameStore.winnerMsg),
           }"
         >
+          <!-- Flying Chip Animation (Player - Moves to Center) -->
+          <div
+            v-if="gameStore.collectingAnte && !me.eliminated"
+            class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 z-50 pointer-events-none"
+            :style="getAnteStyle(me.id)"
+          >
+            <div
+              class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-yellow-300 shadow-xl flex items-center justify-center text-[10px] font-bold text-black animate-spin-slow"
+            >
+              $10
+            </div>
+          </div>
           <!-- Player Bet Badge (Moved Top) -->
           <div
-            v-if="me.currentBet > 0"
+            v-if="me.currentBet > 0 && !gameStore.collectingAnte"
             class="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-3 py-0.5 rounded text-gold font-bold text-lg shadow-lg whitespace-nowrap flex items-baseline gap-1"
           >
             <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Bet</span>
@@ -908,9 +937,44 @@ const canRaise = computed(() => maxRaise.value >= 10)
 
 const sortedHand = computed(() => me.value.hand || [])
 
-const confirmExit = () => {
-  if (confirm('Are you sure you want to exit? Your game progress will be lost.')) {
-    gameStore.resetToLobby()
+// function confirmExit removed
+
+const getAnteStyle = (id) => {
+  // Animation paths must be shorter to land directly in pot (center)
+  // Player panel top edge ~ 75vh? Center ~ 50vh. Delta ~ 25vh.
+  // Opponent panel center ~ 15vh (top-6 + padding/height). Delta ~ 35vh.
+
+  const isMe = id === me.value.id
+  if (isMe) {
+    // Player chip starts at TOP of player panel (closer to center)
+    return {
+      '--tx': '0px',
+      '--ty': '-20vh',
+      animation: 'ante-travel 1s cubic-bezier(0.5, 0, 0.5, 1) forwards',
+    }
+  }
+
+  const oppIndex = opponents.value.findIndex((p) => p.id === id)
+  const count = opponents.value.length
+
+  let tx = '0px'
+  let ty = '28vh' // Opponents move down to center
+
+  if (count === 1) {
+    tx = '0px'
+  } else if (count === 3) {
+    if (oppIndex === 0) tx = '15vw' // Left -> Right (reduced from 20)
+    if (oppIndex === 1) tx = '0px'
+    if (oppIndex === 2) tx = '-15vw' // Right -> Left
+  } else if (count === 2) {
+    if (oppIndex === 0) tx = '8vw'
+    if (oppIndex === 1) tx = '-8vw'
+  }
+
+  return {
+    '--tx': tx,
+    '--ty': ty,
+    animation: 'ante-travel 1s cubic-bezier(0.5, 0, 0.5, 1) forwards',
   }
 }
 
@@ -1122,5 +1186,33 @@ body {
 
 .border-pulse {
   animation: border-glow 2s ease-in-out infinite;
+}
+
+@keyframes ante-travel {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.5);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

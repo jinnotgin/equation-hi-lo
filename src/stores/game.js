@@ -97,6 +97,7 @@ export const useGameStore = defineStore('game', {
     pendingDiscard: null, // { playerId, cardId } — when human draws multiply, must choose +/- to discard
     announcement: null, // { msg: string, visible: boolean } for central overlay
     actionLog: [],
+    collectingAnte: false, // New state for ante animation
   }),
 
   actions: {
@@ -244,17 +245,31 @@ export const useGameStore = defineStore('game', {
 
       // Auto Ante — handle all-in ante (§12)
       this.communityMsg = 'Collecting Ante...'
-      await new Promise((r) => setTimeout(r, 1000))
+      this.collectingAnte = true
 
+      // 1. Deduct chips immediately (they spawn at player)
       this.players.forEach((p) => {
         if (p.eliminated || p.folded) return
         const anteAmt = Math.min(this.minBet, p.chips)
         p.chips -= anteAmt
+        p.anteWager = anteAmt // Store temporarily for animation/logic
         p.currentBet = anteAmt
         p.totalWagered = anteAmt
-        p.allIn = p.chips === 0 // mark all-in for ante edge case
-        this.pot += anteAmt
+        p.allIn = p.chips === 0
       })
+
+      // 2. Wait for animation to travel to pot (1s)
+      await new Promise((r) => setTimeout(r, 1000))
+
+      // 3. Add to pot and clear animation state
+      this.players.forEach((p) => {
+        if (p.anteWager) {
+          this.pot += p.anteWager
+          delete p.anteWager
+        }
+      })
+      this.collectingAnte = false
+
       this.dealInitialCards()
     },
 
