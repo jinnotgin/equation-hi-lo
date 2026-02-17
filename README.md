@@ -21,6 +21,8 @@ Based on the game from the Netflix show _"The Devil's Plan"_, created by Jung Jo
 
 ## 🎮 How to Play
 
+> See the [full rulebook](./rulebook.md) for more details!
+
 **Objective:**
 Construct a mathematical equation using your cards to get a result as close as possible to **1 (Low)** or **20 (High)**.
 
