@@ -340,7 +340,7 @@
               </div>
               <!-- Bet Badge (Repositioned Below Cards) -->
               <div
-                v-if="p.currentBet > 0 && !gameStore.collectingAnte"
+                v-if="p.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
                 class="absolute -bottom-10 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-3 py-0.5 rounded text-base text-gold shadow-lg font-bold whitespace-nowrap z-20 flex items-baseline gap-1"
               >
                 <span class="text-[10px] text-slate-400 uppercase">Bet</span>
@@ -396,7 +396,7 @@
           </div>
           <!-- Player Bet Badge (Moved Top) -->
           <div
-            v-if="me.currentBet > 0 && !gameStore.collectingAnte"
+            v-if="me.currentBet > 0 && ['ROUND_1', 'ROUND_2'].includes(gameStore.phase)"
             class="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/90 border border-gold px-3 py-0.5 rounded text-gold font-bold text-lg shadow-lg whitespace-nowrap flex items-baseline gap-1"
           >
             <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Bet</span>
