@@ -528,38 +528,39 @@ export const useGameStore = defineStore('game', {
       const highTier = classifyTier(solution.high.diff, HIGH_THRESHOLDS)
 
       // ── 3. Estimate same-side competition ──
-      // During betting, declarations haven't happened yet.
-      // Heuristic: assume opponents split roughly evenly between LOW and HIGH.
       const activeOpponents = this.players.filter((p) => !p.folded && p.id !== ai.id).length
       const estPerSide = Math.max(1, Math.ceil(activeOpponents / 2))
 
       // ── 4. Win probabilities ──
       const isRound1 = this.phase === 'ROUND_1'
-      const improvementBonus = isRound1 ? 0.08 : 0 // 4th card may improve hand
+      // Round 1: 4th card roughly quadruples permutation space (4! vs 3!)
+      // Hands improve substantially — a "decent" 3-card hand often becomes "strong"
+      const improvementBonus = isRound1 ? 0.15 : 0
       const lowWinProb = Math.min(0.95, estimateWinProb(lowTier, estPerSide) + improvementBonus)
       const highWinProb = Math.min(0.95, estimateWinProb(highTier, estPerSide) + improvementBonus)
 
-      // ── 5. Expected value for each strategy ──
-      // single-side competes for pot/2; swing competes for full pot
-      // but swing requires winning BOTH sides (joint probability).
+      // ── 5. Expected value ──
       const currentTableBet = Math.max(...this.players.map((p) => p.currentBet))
       const toCall = currentTableBet - ai.currentBet
       const potAfterCall = this.pot + toCall
 
-      const evLow = lowWinProb * (potAfterCall / 2) - toCall
-      const evHigh = highWinProb * (potAfterCall / 2) - toCall
+      // Expected pot share: winner doesn't always split 50/50.
+      // If no one declares the opposing side, winner takes the full pot (§9).
+      // Round 1 has more declaration uncertainty → higher expected share.
+      const expectedShare = isRound1 ? 0.65 : 0.6
+
+      const evLow = lowWinProb * (potAfterCall * expectedShare) - toCall
+      const evHigh = highWinProb * (potAfterCall * expectedShare) - toCall
       const evSwing = lowWinProb * highWinProb * potAfterCall - toCall
 
       // ── 6. Pick best strategy ──
       const bestEv = Math.max(evLow, evHigh, evSwing)
 
-      // Swing requires both sides to be at least "strong" as a safety gate
       const bothSidesStrong =
         TIER_RANK[lowTier] >= TIER_RANK['strong'] && TIER_RANK[highTier] >= TIER_RANK['strong']
 
       let bestTier
       if (bestEv === evSwing && bothSidesStrong) {
-        // Swing — betting aggression governed by the WEAKER side (bottleneck)
         bestTier = TIER_RANK[lowTier] <= TIER_RANK[highTier] ? lowTier : highTier
       } else if (evLow >= evHigh) {
         bestTier = lowTier
@@ -568,11 +569,17 @@ export const useGameStore = defineStore('game', {
       }
 
       // ── 7. Decide action ──
+      // Pot odds: what fraction of the total pot is your call?
+      // Lower = better odds = more reason to stay in.
+      const potOddsRatio = toCall / (this.pot + toCall + 0.01)
+      const cheapCall = potOddsRatio < 0.33 // getting 2:1 or better
+      const decentOdds = potOddsRatio < 0.45 // reasonable odds
+
       let action = 'fold'
       const roll = Math.random()
 
       if (toCall === 0) {
-        // Free to check — NEVER fold when checking costs nothing
+        // Free to check — NEVER fold
         if (bestTier === 'elite' && !ai.hasRaisedThisRound && roll > 0.4) {
           action = 'raise'
         } else if (bestTier === 'strong' && !ai.hasRaisedThisRound && roll > 0.85) {
@@ -590,28 +597,52 @@ export const useGameStore = defineStore('game', {
           action = 'call'
         }
       } else {
-        // Negative EV — lean toward folding, with tier-based exceptions
+        // Negative EV — use pot odds + tier + round context to decide.
+        // Key insight: negative EV doesn't mean auto-fold.
+        // In Round 1, you're paying to see the 4th card (implied odds).
+        // Good pot odds also justify calling with marginal hands.
+
         if (bestTier === 'elite') {
-          action = 'call' // Elite always stays — implied odds, pot may grow
-        } else if (bestTier === 'strong' && roll > 0.6) {
-          action = 'call' // 40% hero-call
-        } else if (bestTier === 'decent' && isRound1 && roll > 0.8) {
-          action = 'call' // 20% speculative call in R1 (hand may improve)
+          action = 'call' // Elite always stays — massive implied odds
+        } else if (bestTier === 'strong') {
+          // Strong hands call most of the time, fold only at terrible odds
+          action = decentOdds || roll > 0.4 ? 'call' : 'fold'
+        } else if (bestTier === 'decent') {
+          if (isRound1) {
+            // Round 1: 4th card can transform the hand — be speculative
+            if (cheapCall) {
+              action = 'call' // Always call with good pot odds
+            } else if (decentOdds) {
+              action = roll > 0.4 ? 'call' : 'fold' // 60% call
+            } else {
+              action = roll > 0.55 ? 'call' : 'fold' // 45% call even at bad odds
+            }
+          } else {
+            // Round 2: hand is final, be more cautious
+            action = cheapCall && roll > 0.4 ? 'call' : 'fold'
+          }
+        } else if (bestTier === 'weak') {
+          // Weak hands: only stay if it's Round 1 AND cheap
+          if (isRound1 && cheapCall && roll > 0.6) {
+            action = 'call' // 40% speculative call
+          } else {
+            action = 'fold'
+          }
         } else {
+          // Junk: always fold when facing a bet
           action = 'fold'
         }
       }
 
-      // ── 8. Execute action ──
+      // ── 8. Execute action (unchanged) ──
       if (action === 'raise') {
-        // Scale raise with pot size, cap at 40% of stack
         const raiseBase =
           bestTier === 'elite'
-            ? Math.max(20, Math.floor(this.pot * 0.5)) // ~50% pot
-            : Math.max(10, Math.floor(this.pot * 0.3)) // ~30% pot
+            ? Math.max(20, Math.floor(this.pot * 0.5))
+            : Math.max(10, Math.floor(this.pot * 0.3))
         const raiseAmt = raiseBase + Math.floor(Math.random() * 2) * 10
         const maxRaise = Math.floor(ai.chips * 0.4)
-        const finalRaise = Math.min(raiseAmt, maxRaise)
+        const finalRaise = Math.max(10, Math.round(Math.min(raiseAmt, maxRaise) / 10) * 10)
 
         const maxAdditional = this.roundBettingCap - ai.totalWagered
         if (ai.chips >= toCall + finalRaise && toCall + finalRaise <= maxAdditional) {
@@ -620,7 +651,6 @@ export const useGameStore = defineStore('game', {
           this.lastAggressorIndex = ai.id
           ai.lastAction = `Raise $${finalRaise}`
         } else {
-          // Fallback to call if raise doesn't fit
           const callAmt = Math.min(toCall, ai.chips)
           this.placeBet(ai, callAmt)
           ai.lastAction = toCall === 0 ? 'Check' : `Call $${callAmt}`
