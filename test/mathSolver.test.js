@@ -4,6 +4,7 @@ import { solveHand } from '../src/utils/mathSolver.js'
 import { evaluateEquation } from '../src/utils/equationEvaluator.js'
 
 const EPSILON = 1e-9
+const LOG_EQUATIONS = process.env.LOG_EQUATIONS === '1'
 
 const parseEquationTokens = (equation) => {
   const parts = equation.trim().split(/\s+/).filter(Boolean)
@@ -63,6 +64,15 @@ test('solveHand returns equations that are valid and match reported numeric resu
     const sqrtCount = randomInt(rng, 0, Math.min(2, numberCount))
 
     const solved = solveHand(hand, operators, sqrtCount)
+
+    if (LOG_EQUATIONS) {
+      const handLabel = hand.map((c) => c.value).join(',')
+      console.log(
+        `[solve-case:${i + 1}] hand=[${handLabel}] ops=[${operators.join(',')}] sqrt=${sqrtCount}`,
+      )
+      console.log(`  LOW:  ${solved.low.equation} = ${solved.low.result}`)
+      console.log(`  HIGH: ${solved.high.equation} = ${solved.high.result}`)
+    }
 
     for (const side of ['low', 'high']) {
       const entry = solved[side]

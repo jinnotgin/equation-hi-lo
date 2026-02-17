@@ -4,6 +4,7 @@ import { evaluateEquation } from '../src/utils/equationEvaluator.js'
 
 const EPSILON = 1e-9
 const RANDOMIZED_DIFF_CASES = 5000
+const LOG_EQUATIONS = process.env.LOG_EQUATIONS === '1'
 
 const tokensToNativeExpression = (tokens) => {
   const parts = []
@@ -135,8 +136,22 @@ test('evaluateEquation matches native evaluation on randomized valid expressions
 
   for (let i = 0; i < RANDOMIZED_DIFF_CASES; i++) {
     const tokens = buildRandomValidTokens(rng)
+    const nativeExpression = tokensToNativeExpression(tokens)
     const ours = evaluateEquation(tokens)
     const native = evaluateNative(tokens)
+
+    if (LOG_EQUATIONS) {
+      const deterministicValue = ours.valid ? String(ours.result) : `ERROR(${ours.error})`
+      const nativeValue = Number.isFinite(native) ? String(native) : 'ERROR(DIV_ZERO)'
+      const status =
+        (!Number.isFinite(native) && !ours.valid && ours.error === 'DIV_ZERO') ||
+        (Number.isFinite(native) && ours.valid && Math.abs(ours.result - native) <= EPSILON)
+          ? 'OK'
+          : 'MISMATCH'
+      console.log(
+        `[eval-case:${i + 1}] ${nativeExpression} | native=${nativeValue} | deterministic=${deterministicValue} | status=${status}`,
+      )
+    }
 
     if (!Number.isFinite(native)) {
       assert.equal(ours.valid, false)
@@ -144,10 +159,10 @@ test('evaluateEquation matches native evaluation on randomized valid expressions
       continue
     }
 
-    assert.equal(ours.valid, true, `expected valid for ${tokensToNativeExpression(tokens)}`)
+    assert.equal(ours.valid, true, `expected valid for ${nativeExpression}`)
     assert.ok(
       Math.abs(ours.result - native) <= EPSILON,
-      `mismatch for ${tokensToNativeExpression(tokens)}: ours=${ours.result}, native=${native}`,
+      `mismatch for ${nativeExpression}: ours=${ours.result}, native=${native}`,
     )
   }
 })

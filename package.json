@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
+    "test:equations": "LOG_EQUATIONS=1 node --test",
     "lint": "run-s lint:oxlint lint:eslint",
     "lint:oxlint": "oxlint .",
     "lint:eslint": "eslint . --cache",
