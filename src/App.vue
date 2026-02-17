@@ -1134,6 +1134,7 @@ const isAutoResolvingShowdown = computed(() => {
   if (gameStore.phase !== 'SHOWDOWN' || gameStore.winnerMsg) return false
   const human = gameStore.players.find((p) => p.isHuman)
   if (!human) return true
+  return human.folded || human.eliminated || !!human.declaration
 })
 
 const maxBetOnTable = computed(() => Math.max(...gameStore.players.map((p) => p.currentBet), 0))
