@@ -4,6 +4,8 @@
 
 Based on the game from the Netflix show _"The Devil's Plan"_, created by Jung Jong-yeon.
 
+🎮 Play it here: [https://hi-lo.pages.dev/](https://hi-lo.pages.dev/)
+
 ---
 
 ### Created By
